@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>AbelProcure</title>
+    <script>
+      sessionStorage.setItem('abelprocure-redirect', location.pathname + location.search + location.hash);
+      var parts = location.pathname.split('/').filter(Boolean);
+      var base = parts[0] === 'AbelProcure' ? '/AbelProcure/' : '/';
+      location.replace(base);
+    </script>
+  </head>
+  <body></body>
+</html>
