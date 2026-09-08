@@ -67,16 +67,18 @@ interface MarketplaceProvider {
 }
 ```
 
-Implemented: `EbayMarketplaceProvider` (Browse API).
+Implemented:
+
+- `EbayMarketplaceProvider` (Browse API)
+- `CexMarketplaceProvider` (public wss2 JSON; 403 → UNAVAILABLE, no evasion)
 
 Prepared, **not implemented** (no unofficial scraping):
 
 - `FacebookMarketplaceProvider`
 - `GumtreeMarketplaceProvider`
-- `CeXProvider`
 - `CashConvertersProvider`
 
-Each throws `NOT_IMPLEMENTED` with a clear status.
+Facebook/Gumtree/CashConverters throw `NOT_IMPLEMENTED` with a clear status. CeX is standalone in `packages/core/src/cex` and mounted on isolated Worker routes so failures cannot break eBay. See [CEX.md](CEX.md).
 
 ## eBay integration (researched)
 

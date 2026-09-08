@@ -96,22 +96,24 @@ export interface AppState {
   wizardStep: number;
 }
 
-const STORAGE_KEY = 'abelprocure-state-v1';
+const STORAGE_KEY = 'abelprocure-state-v2';
 
 function demoBuilds(): BuildRecord[] {
   return [
     {
       id: 'build-4',
-      name: 'BUILD 4',
-      targetResalePence: 49900,
+      name: 'Build 4',
+      targetResalePence: 52000,
       slots: [
-        { slot: 'CPU', model: 'Ryzen 5 5600', boughtPence: 5800, status: 'ALLOCATED' },
-        { slot: 'Motherboard', model: 'B550 AM4', boughtPence: 4200, status: 'ALLOCATED' },
-        { slot: 'RAM', model: '16GB DDR4', boughtPence: 2100, status: 'ALLOCATED' },
+        { slot: 'Kit', model: 'Build 4 parts excluding GPU', boughtPence: 26893, status: 'ALLOCATED' },
+        { slot: 'CPU', model: 'AMD Ryzen 5 PRO 2400G', boughtPence: null, status: 'ALLOCATED' },
+        { slot: 'Motherboard', model: 'ASUS Prime B450M-A', boughtPence: null, status: 'ALLOCATED' },
+        { slot: 'RAM', model: 'Corsair Vengeance LPX 16GB 2x8GB DDR4-3200', boughtPence: null, status: 'ALLOCATED' },
+        { slot: 'Storage', model: 'XPG SX8200NP 1TB NVMe', boughtPence: null, status: 'ALLOCATED' },
+        { slot: 'PSU', model: 'Corsair VS550 550W (older VS)', boughtPence: null, status: 'ALLOCATED' },
+        { slot: 'Case', model: 'Sharkoon Rebel C50 RGB White', boughtPence: null, status: 'ALLOCATED' },
+        { slot: 'Cooler', model: 'AMD Wraith Stealth', boughtPence: null, status: 'ALLOCATED' },
         { slot: 'GPU', model: '', boughtPence: null, status: 'NEEDED' },
-        { slot: 'SSD', model: '', boughtPence: null, status: 'NEEDED' },
-        { slot: 'PSU', model: '', boughtPence: null, status: 'NEEDED' },
-        { slot: 'Case', model: '', boughtPence: null, status: 'NEEDED' },
       ],
     },
   ];
@@ -148,19 +150,18 @@ export function bootstrapState(): AppState {
     feedback: [],
     inventory: [
       {
-        id: 'inv-1',
-        component: 'CPU',
-        brand: 'AMD',
-        model: 'Ryzen 5 5600',
-        source: 'eBay UK',
-        purchaseDate: '2026-08-20',
-        purchasePence: 5400,
-        postagePence: 400,
-        landedPence: 5800,
-        condition: 'USED_EXCELLENT',
-        status: 'ALLOCATED',
-        buildId: 'build-4',
-        estimatedResalePence: 8000,
+        id: 'inv-gt1030',
+        component: 'GPU',
+        brand: 'Gigabyte',
+        model: 'GeForce GT 1030 OC 2GB GDDR5',
+        source: 'historical',
+        purchaseDate: '2026-06-01',
+        purchasePence: 3200,
+        postagePence: 283,
+        landedPence: 3483,
+        condition: 'USED_GOOD',
+        status: 'AVAILABLE',
+        estimatedResalePence: 3000,
       },
     ],
     builds,

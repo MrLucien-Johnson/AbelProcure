@@ -1,0 +1,137 @@
+import type { CexBox } from './types.ts';
+
+interface LooseBox {
+  boxId?: unknown;
+  boxName?: unknown;
+  categoryId?: unknown;
+  categoryName?: unknown;
+  superCatName?: unknown;
+  sellPrice?: unknown;
+  cashPrice?: unknown;
+  exchangePrice?: unknown;
+  outOfStock?: unknown;
+  outOfEcomStock?: unknown;
+  ecomQuantityOnHand?: unknown;
+  cannotBuy?: unknown;
+  imageUrls?: { large?: unknown; medium?: unknown };
+}
+
+export function parseCexBoxesPayload(payload: unknown): { boxes: CexBox[]; totalRecords: number | null; ack: string; firstRecord: number | null; count: number | null } {
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('CeX payload is not an object');
+  }
+  const root = payload as {
+    response?: {
+      ack?: string;
+      data?: { boxes?: unknown; totalRecords?: unknown; totalBoxes?: unknown; firstRecord?: unknown; count?: unknown };
+    };
+  };
+  const ack = root.response?.ack ?? 'Unknown';
+  if (ack === 'Failure') {
+    throw new Error('CeX API ack Failure');
+  }
+  const data = root.response?.data;
+  const rawBoxes = Array.isArray(data?.boxes) ? data.boxes : [];
+  const boxes = rawBoxes.map((row) => parseBox(row)).filter((b): b is CexBox => b !== null);
+  const total =
+    typeof data?.totalRecords === 'number'
+      ? data.totalRecords
+      : typeof data?.totalBoxes === 'number'
+        ? data.totalBoxes
+        : null;
+  return {
+    boxes,
+    totalRecords: total,
+    ack,
+    firstRecord: typeof data?.firstRecord === 'number' ? data.firstRecord : null,
+    count: typeof data?.count === 'number' ? data.count : boxes.length,
+  };
+}
+
+export function parseCexBoxesResponse(text: string): ReturnType<typeof parseCexBoxesPayload> {
+  let json: unknown;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    throw new Error('CeX boxes response is not JSON');
+  }
+  return parseCexBoxesPayload(json);
+}
+
+export interface CexProductLine {
+  readonly productLineId: number;
+  readonly productLineName: string;
+}
+
+export interface CexCategoryRow {
+  readonly categoryId: number;
+  readonly categoryName: string;
+  readonly productLineId: number | null;
+  readonly totalBoxes: number | null;
+}
+
+export function parseCexProductLines(text: string): CexProductLine[] {
+  const json = JSON.parse(text) as { response?: { ack?: string; data?: { productLines?: unknown } } };
+  if (json.response?.ack === 'Failure') throw new Error('CeX productlines ack Failure');
+  const rows = Array.isArray(json.response?.data?.productLines) ? json.response.data.productLines : [];
+  return rows.flatMap((row) => {
+    if (!row || typeof row !== 'object') return [];
+    const r = row as { productLineId?: unknown; productLineName?: unknown };
+    if (typeof r.productLineId !== 'number' || typeof r.productLineName !== 'string') return [];
+    return [{ productLineId: r.productLineId, productLineName: r.productLineName }];
+  });
+}
+
+export function parseCexCategories(text: string): CexCategoryRow[] {
+  const json = JSON.parse(text) as { response?: { ack?: string; data?: { categories?: unknown } } };
+  if (json.response?.ack === 'Failure') throw new Error('CeX categories ack Failure');
+  const rows = Array.isArray(json.response?.data?.categories) ? json.response.data.categories : [];
+  return rows.flatMap((row) => {
+    if (!row || typeof row !== 'object') return [];
+    const r = row as {
+      categoryId?: unknown;
+      categoryName?: unknown;
+      productLineId?: unknown;
+      totalBoxes?: unknown;
+    };
+    if (typeof r.categoryId !== 'number' || typeof r.categoryName !== 'string') return [];
+    return [
+      {
+        categoryId: r.categoryId,
+        categoryName: r.categoryName,
+        productLineId: typeof r.productLineId === 'number' ? r.productLineId : null,
+        totalBoxes: typeof r.totalBoxes === 'number' ? r.totalBoxes : null,
+      },
+    ];
+  });
+}
+
+export function parseBox(row: unknown): CexBox | null {
+  if (!row || typeof row !== 'object') return null;
+  const b = row as LooseBox;
+  if (typeof b.boxId !== 'string' || typeof b.boxName !== 'string') return null;
+  return {
+    boxId: b.boxId,
+    boxName: b.boxName,
+    categoryId: typeof b.categoryId === 'number' ? b.categoryId : null,
+    categoryName: typeof b.categoryName === 'string' ? b.categoryName : null,
+    superCatName: typeof b.superCatName === 'string' ? b.superCatName : null,
+    sellPrice: num(b.sellPrice),
+    cashPrice: num(b.cashPrice),
+    exchangePrice: num(b.exchangePrice),
+    outOfStock: truthy(b.outOfStock),
+    outOfEcomStock: truthy(b.outOfEcomStock),
+    ecomQuantityOnHand: num(b.ecomQuantityOnHand),
+    imageLarge: typeof b.imageUrls?.large === 'string' ? b.imageUrls.large : typeof (b as { imageLarge?: unknown }).imageLarge === 'string' ? (b as { imageLarge: string }).imageLarge : null,
+    imageMedium: typeof b.imageUrls?.medium === 'string' ? b.imageUrls.medium : typeof (b as { imageMedium?: unknown }).imageMedium === 'string' ? (b as { imageMedium: string }).imageMedium : null,
+    cannotBuy: truthy(b.cannotBuy),
+  };
+}
+
+function num(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function truthy(value: unknown): boolean {
+  return value === 1 || value === true;
+}

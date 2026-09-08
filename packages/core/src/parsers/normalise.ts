@@ -7,6 +7,7 @@ import {
   UNSAFE_PSU_HINTS,
   type CatalogModel,
 } from '../catalog/models.ts';
+import { GPU_MODELS_EXTENDED } from '../catalog/gpuExtended.ts';
 import type { ComponentType } from '../types/enums.ts';
 import type { FieldConfidence, NormalisedComponent } from '../types/listing.ts';
 
@@ -27,7 +28,7 @@ export function normaliseListingText(title: string, description?: string | null)
   const compact = compactText(hay);
   const bundleParts: NormalisedComponent[] = [];
 
-  const gpu = matchCatalog(compact, GPU_MODELS);
+  const gpu = matchCatalog(compact, [...GPU_MODELS, ...GPU_MODELS_EXTENDED]);
   const cpu = matchCatalog(compact, CPU_MODELS);
   const mb = matchCatalog(compact, MOTHERBOARD_CHIPSETS);
   const ram = parseRam(compact);
@@ -270,7 +271,7 @@ function detectPartner(compact: string): string | null {
 }
 
 function detectGpuVariant(compact: string): string | null {
-  const variants = ['PULSE', 'NITRO', 'VENTUS', 'GAMING X', 'TUF', 'EAGLE', 'DUAL', 'MECH', 'TRINITY'];
+  const variants = ['ROG STRIX', 'STRIX', 'PULSE', 'NITRO', 'VENTUS', 'GAMING X', 'TUF', 'EAGLE', 'DUAL', 'MECH', 'TRINITY'];
   return variants.find((v) => compact.includes(v)) ?? null;
 }
 

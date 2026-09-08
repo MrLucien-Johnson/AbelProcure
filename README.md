@@ -26,7 +26,8 @@ Useful scripts:
 | `npm run typecheck` | TypeScript project references |
 | `npm run lint` | ESLint |
 | `npm run build` | Production GitHub Pages bundle |
-| `npm run dev:worker` | Cloudflare Worker (needs wrangler + optional `.dev.vars`) |
+| `npm run cex:scan:demo` | Score labelled CeX DEMO fixtures (no live site) |
+| `npm run cex:scan` | One-off live CeX GPU scan (fails gracefully on 403) |
 
 ## Then connect a real eBay production account
 
@@ -52,6 +53,7 @@ The UI still works. Live search results will not appear until the Worker has an 
 - [SECURITY.md](SECURITY.md)
 - [NOTIFICATIONS.md](NOTIFICATIONS.md)
 - [PC_COMPONENT_NORMALISATION.md](PC_COMPONENT_NORMALISATION.md)
+- [CEX.md](CEX.md)
 - [DEVELOPMENT.md](DEVELOPMENT.md)
 - [EBAY_SETUP.md](EBAY_SETUP.md)
 - [DEPLOYMENT.md](DEPLOYMENT.md)

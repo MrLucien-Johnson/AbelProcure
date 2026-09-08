@@ -5,6 +5,7 @@ import { SearchPage } from './routes/SearchPage';
 import { AuctionsPage, OffersPage, WatchlistPage } from './routes/AuctionsPage';
 import { BuildsPage, InventoryPage, MarketValuesPage, PurchaseHistoryPage, SavedSearchesPage } from './routes/OpsPages';
 import { AlertsPage, AlgorithmPage, SettingsPage, StatusPage } from './routes/SystemPages';
+import { CexGpusPage, CexHistoryPage, CexOpportunitiesPage, CexOverviewPage } from './routes/CexPages';
 
 export function App() {
   return (
@@ -20,6 +21,10 @@ export function App() {
         <Route path="builds" element={<BuildsPage />} />
         <Route path="market-values" element={<MarketValuesPage />} />
         <Route path="purchase-history" element={<PurchaseHistoryPage />} />
+        <Route path="cex" element={<CexOverviewPage />} />
+        <Route path="cex/gpus" element={<CexGpusPage />} />
+        <Route path="cex/opportunities" element={<CexOpportunitiesPage />} />
+        <Route path="cex/history" element={<CexHistoryPage />} />
         <Route path="algorithm" element={<AlgorithmPage />} />
         <Route path="alerts" element={<AlertsPage />} />
         <Route path="settings" element={<SettingsPage />} />

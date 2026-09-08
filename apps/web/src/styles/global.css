@@ -268,7 +268,27 @@ input, select, textarea {
 .status-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .pill { font-size: 11px; padding: 3px 8px; border-radius: 999px; background: var(--bg-3); }
 
-.factor-bar { height: 8px; background: var(--bg-4); border-radius: 99px; overflow: hidden; }
+.cex-subnav {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 18px;
+  flex-wrap: wrap;
+}
+.cex-subnav a {
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+}
+.cex-subnav a.active { color: var(--amber); border-color: var(--amber); }
+
+.badge.BUY, .badge.STRONG_BUY { background: #19331f; color: #7dffb4; }
+.badge.LIVE { background: #173528; color: var(--green); }
+.badge.CACHED { background: #2a2418; color: #e6c27a; }
+.badge.STALE { background: #2a1e18; color: #ffb087; }
+.badge.UNAVAILABLE, .badge.DISABLED { background: #2a1618; color: #ff8b96; }
 .factor-bar > span { display: block; height: 100%; background: linear-gradient(90deg, var(--amber), var(--green)); }
 
 .banner {

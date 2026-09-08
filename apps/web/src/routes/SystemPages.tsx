@@ -137,6 +137,7 @@ export function StatusPage() {
         ['EBAY_NOTIFICATIONS', 'CONFIGURATION_REQUIRED'],
         ['SEARCH_SCHEDULER', 'CONFIGURATION_REQUIRED'],
         ['ALERT_ENGINE', 'DEMO'],
+        ['CEX_COLLECTION', 'DEMO / may be UNAVAILABLE live (Cloudflare 403 on /boxes)'],
         ['OFFER_API / AUTO BID', 'DISABLED_PENDING_EBAY_APPROVAL'],
       ].map(([k, v]) => (
         <div key={k} className="status-row"><span>{k}</span><span className="pill">{v}</span></div>

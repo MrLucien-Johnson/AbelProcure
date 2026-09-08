@@ -44,7 +44,7 @@ export interface SellerInfo {
 }
 
 export interface RawListing {
-  readonly marketplace: 'ebay';
+  readonly marketplace: 'ebay' | 'cex';
   readonly itemId: string;
   readonly legacyItemId: string | null;
   readonly title: string;

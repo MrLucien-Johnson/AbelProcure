@@ -1,4 +1,4 @@
-export const DATA_SOURCES = ['DEMO_SYNTHETIC', 'EBAY_BROWSE', 'USER_ENTERED'] as const;
+export const DATA_SOURCES = ['DEMO_SYNTHETIC', 'EBAY_BROWSE', 'USER_ENTERED', 'CEX_WEBUY_API', 'CEX_IMPORT'] as const;
 export type DataSource = (typeof DATA_SOURCES)[number];
 
 export const MARKET_VALUE_KINDS = ['ACTIVE_LISTING_ESTIMATE', 'VERIFIED_SOLD_PRICE_DATA', 'USER_PRICE_BOOK'] as const;
@@ -124,6 +124,12 @@ export const ALERT_TYPES = [
   'COUNTER_OFFER_RECEIVED',
   'NEW_DEAL_SCORE_90_PLUS',
   'DO_NOT_CHASE',
+  'CEX_GPU_BARGAIN',
+  'CEX_SIGNIFICANT_BARGAIN',
+  'CEX_NEW',
+  'CEX_RESTOCKED',
+  'CEX_PRICE_DROP',
+  'CEX_BUILD4_PROFIT_THRESHOLD',
 ] as const;
 export type AlertType = (typeof ALERT_TYPES)[number];
 

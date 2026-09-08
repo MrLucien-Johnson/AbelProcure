@@ -16,6 +16,13 @@ export interface Env {
   APP_BASE_URL?: string;
   VAPID_PUBLIC_KEY?: string;
   VAPID_PRIVATE_KEY?: string;
+  CEX_ENABLED?: string;
+  CEX_BASE_URL?: string;
+  CEX_REQUEST_DELAY?: string;
+  CEX_REQUEST_TIMEOUT?: string;
+  CEX_MAX_RETRIES?: string;
+  CEX_CACHE_TTL?: string;
+  CEX_MAX_PAGES_PER_RUN?: string;
 }
 
 export function credentialsReady(env: Env): boolean {

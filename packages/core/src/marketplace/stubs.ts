@@ -21,5 +21,4 @@ export class NotImplementedMarketplace implements MarketplaceProvider {
 
 export const facebookMarketplaceProvider = new NotImplementedMarketplace('facebook', 'FacebookMarketplaceProvider');
 export const gumtreeMarketplaceProvider = new NotImplementedMarketplace('gumtree', 'GumtreeMarketplaceProvider');
-export const cexProvider = new NotImplementedMarketplace('cex', 'CeXProvider');
 export const cashConvertersProvider = new NotImplementedMarketplace('cashconverters', 'CashConvertersProvider');

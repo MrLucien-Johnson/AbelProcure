@@ -9,6 +9,7 @@ const NAV = [
   ['/watchlist', 'Watchlist'],
   ['/offers', 'Offers'],
   ['/inventory', 'Inventory'],
+  ['/cex', 'CeX UK'],
   ['/builds', 'Builds'],
   ['/market-values', 'Market Values'],
   ['/purchase-history', 'Purchase History'],

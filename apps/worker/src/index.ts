@@ -14,6 +14,8 @@ import { EbayMarketplaceProvider } from './ebay/browse.ts';
 import { oauthRoutes } from './ebay/oauth.ts';
 import { PERMISSION_REQUIRED, webhookRoutes } from './ebay/webhooks.ts';
 import { prioritiseEndingSoon } from './jobs/rateLimit.ts';
+import { cexRoutes } from './cex/routes.ts';
+import { runWorkerCexScan } from './cex/scanJob.ts';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -31,6 +33,7 @@ app.use('*', secureHeaders());
 
 app.route('/', oauthRoutes());
 app.route('/', webhookRoutes());
+app.route('/', cexRoutes());
 
 app.get('/health', (c) => c.json({ ok: true, service: 'abelprocure-api' }));
 
@@ -45,6 +48,7 @@ app.get('/status', (c) => {
     EBAY_NOTIFICATIONS: c.env.WEBHOOK_VERIFICATION_TOKEN ? 'READY' : 'CONFIGURATION_REQUIRED',
     SEARCH_SCHEDULER: creds ? 'READY' : 'CONFIGURATION_REQUIRED',
     ALERT_ENGINE: 'READY',
+    CEX_COLLECTION: c.env.CEX_ENABLED === 'false' ? 'DISABLED' : 'READY',
     OFFER_API: 'EBAY_PERMISSION_REQUIRED',
     AUTOMATIC_BIDDING: BIDDING_STATUS,
     buyerNotificationTopics: [...PERMISSION_REQUIRED],
@@ -97,27 +101,52 @@ export default {
   fetch: app.fetch,
   async scheduled(_event: ScheduledEvent, env: Env, _ctx: ExecutionContext): Promise<void> {
     const ebay = new EbayMarketplaceProvider(env);
-    if (!ebay.configured()) return;
-    const result = await ebay.search({ keyword: 'graphics card', auctionOnly: true, endingSoon: true, ukOnly: true });
-    const ranked = prioritiseEndingSoon(
-      result.items.map((item) => ({
-        itemId: item.itemId,
-        minutesRemaining: item.endTime ? (Date.parse(item.endTime) - Date.now()) / 60000 : null,
-      })),
-    );
-    if (env.DB) {
-      await env.DB.prepare(
-        `INSERT INTO system_jobs (id, kind, scheduled_for, started_at, finished_at, status, detail)
-         VALUES (?, 'search-ending-soon', ?, ?, ?, 'ok', ?)`,
-      )
-        .bind(
-          crypto.randomUUID(),
-          new Date().toISOString(),
-          new Date().toISOString(),
-          new Date().toISOString(),
-          `checked ${ranked.length} auctions`,
+    if (ebay.configured()) {
+      try {
+        const result = await ebay.search({ keyword: 'graphics card', auctionOnly: true, endingSoon: true, ukOnly: true });
+        const ranked = prioritiseEndingSoon(
+          result.items.map((item) => ({
+            itemId: item.itemId,
+            minutesRemaining: item.endTime ? (Date.parse(item.endTime) - Date.now()) / 60000 : null,
+          })),
+        );
+        if (env.DB) {
+          await env.DB.prepare(
+            `INSERT INTO system_jobs (id, kind, scheduled_for, started_at, finished_at, status, detail)
+             VALUES (?, 'search-ending-soon', ?, ?, ?, 'ok', ?)`,
+          )
+            .bind(
+              crypto.randomUUID(),
+              new Date().toISOString(),
+              new Date().toISOString(),
+              new Date().toISOString(),
+              `checked ${ranked.length} auctions`,
+            )
+            .run();
+        }
+      } catch (err) {
+        console.warn('[ebay] scheduled search failed', err instanceof Error ? err.message : err);
+      }
+    }
+    try {
+      const cex = await runWorkerCexScan(env, 'gpu');
+      if (env.DB) {
+        await env.DB.prepare(
+          `INSERT INTO system_jobs (id, kind, scheduled_for, started_at, finished_at, status, detail)
+           VALUES (?, 'cex-scan', ?, ?, ?, ?, ?)`,
         )
-        .run();
+          .bind(
+            crypto.randomUUID(),
+            new Date().toISOString(),
+            new Date().toISOString(),
+            new Date().toISOString(),
+            cex.error ? 'error' : 'ok',
+            `cex ${cex.status} products=${cex.products.length}`,
+          )
+          .run();
+      }
+    } catch (err) {
+      console.warn('[cex] scheduled scan failed — eBay path unaffected', err instanceof Error ? err.message : err);
     }
   },
 };

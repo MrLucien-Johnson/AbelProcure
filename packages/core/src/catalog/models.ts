@@ -40,8 +40,10 @@ export const GPU_MODELS: readonly CatalogModel[] = [
 ];
 
 export const CPU_MODELS: readonly CatalogModel[] = [
+  cpu('r5-2400g', 'AMD', 'Ryzen 5', 'Ryzen 5 PRO 2400G', ['R5 2400G', '2400G', 'Ryzen 5 2400G'], [], 40, 55, ['AM4'], 'AM4'),
   cpu('r5-2600', 'AMD', 'Ryzen 5', 'Ryzen 5 2600', ['R5 2600', '2600 6CORE'], ['26500'], 55, 70, ['AM4'], 'AM4'),
   cpu('r5-3600', 'AMD', 'Ryzen 5', 'Ryzen 5 3600', ['R5 3600', '3600 6CORE'], [], 78, 88, ['AM4', '1080p'], 'AM4'),
+  cpu('r5-3600x', 'AMD', 'Ryzen 5', 'Ryzen 5 3600X', ['R5 3600X', '3600X'], [], 76, 82, ['AM4', '1080p'], 'AM4'),
   cpu('r5-4500', 'AMD', 'Ryzen 5', 'Ryzen 5 4500', ['R5 4500'], [], 70, 80, ['AM4', 'esports'], 'AM4'),
   cpu('r5-5500', 'AMD', 'Ryzen 5', 'Ryzen 5 5500', ['R5 5500'], [], 76, 82, ['AM4', 'esports'], 'AM4'),
   cpu('r5-5600', 'AMD', 'Ryzen 5', 'Ryzen 5 5600', ['R5 5600', '5600 non X'], ['5600xnon'], 90, 90, ['AM4', '1080p', 'Fortnite'], 'AM4'),
