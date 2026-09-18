@@ -318,6 +318,16 @@ describe('CeX client failure handling (no live hammering)', () => {
     expect(fetchImpl.mock.calls.length).toBeGreaterThanOrEqual(1);
   });
 
+  it('import mode accepts a raw boxes array', async () => {
+    const result = await runCexScan({
+      mode: 'import',
+      payload: [{ boxId: 'imp-1', boxName: 'AMD Radeon RX 6600 8GB', sellPrice: 105, categoryId: 892, outOfStock: 0 }],
+      allowDemoMarket: true,
+    });
+    expect(result.products).toHaveLength(1);
+    expect(result.products[0]?.modelKey).toBe('rx-6600');
+  });
+
   it('scan import mode uses the payload and does not fetch', async () => {
     const result = await runCexScan({ mode: 'import', payload: DEMO_CEX_BOXES_RESPONSE, allowDemoMarket: true });
     expect(result.status).toBe('LIVE');

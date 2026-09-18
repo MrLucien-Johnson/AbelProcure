@@ -48,7 +48,7 @@ export { BUILD4, BUILD4_COST_BEFORE_GPU, GTX1080_BENCHMARK_LANDED, build4Profit,
 export { DEMO_CEX_BOXES, DEMO_CEX_BOXES_RESPONSE } from './cex/fixtures.ts';
 export { InMemorySnapshotStore, diffSnapshots, snapshotFromProduct } from './cex/snapshots.ts';
 export { CexClient, CexCollectionError } from './cex/client.ts';
-export { parseCexBoxesPayload, parseCexBoxesResponse } from './cex/parse.ts';
+export { parseCexBoxesPayload, parseCexBoxesResponse, coerceCexImportPayload } from './cex/parse.ts';
 export { boxToProduct, productUrlForBox } from './cex/normalise.ts';
 export { performanceFor, GPU_PERFORMANCE } from './cex/performance.ts';
 export { matchCompletePcs } from './cex/comparables.ts';

@@ -48,6 +48,23 @@ export function parseCexBoxesPayload(payload: unknown): { boxes: CexBox[]; total
   };
 }
 
+export function coerceCexImportPayload(raw: unknown): unknown {
+  if (Array.isArray(raw)) {
+    return { response: { ack: 'Success', data: { boxes: raw, totalBoxes: raw.length } } };
+  }
+  if (raw && typeof raw === 'object') {
+    const obj = raw as { response?: unknown; boxes?: unknown; data?: { boxes?: unknown } };
+    if (obj.response) return raw;
+    if (Array.isArray(obj.boxes)) {
+      return { response: { ack: 'Success', data: obj } };
+    }
+    if (obj.data && typeof obj.data === 'object' && Array.isArray(obj.data.boxes)) {
+      return { response: { ack: 'Success', data: obj.data } };
+    }
+  }
+  return raw;
+}
+
 export function parseCexBoxesResponse(text: string): ReturnType<typeof parseCexBoxesPayload> {
   let json: unknown;
   try {

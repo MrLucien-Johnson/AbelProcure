@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   BUILD4,
@@ -6,13 +6,12 @@ import {
   formatGBP,
   gtx1080BenchmarkProfit,
   money,
-  runCexScan,
   sortOpportunities,
   type CexOpportunity,
-  type CexScanResult,
   type OpportunitySort,
 } from '@abelprocure/core';
 import { moneyText } from '../state/store';
+import { useCexScan } from '../state/cexScan';
 
 const SORTS: { id: OpportunitySort; label: string }[] = [
   { id: 'BEST_OPPORTUNITY', label: 'Best opportunity' },
@@ -30,20 +29,6 @@ function collectionBadge(state: string) {
   return <span className={`badge ${cls}`}>{state}</span>;
 }
 
-function useCexDemoScan() {
-  const [scan, setScan] = useState<CexScanResult | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    void runCexScan({ mode: 'demo', allowDemoMarket: true }).then((result) => {
-      if (!cancelled) setScan(result);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-  return scan;
-}
-
 function CexLayout({ children }: { children: React.ReactNode }) {
   return (
     <div>
@@ -51,8 +36,8 @@ function CexLayout({ children }: { children: React.ReactNode }) {
         <div>
           <h1>CeX UK inventory intelligence</h1>
           <p>
-            Standalone CeX GPU scanner with Build 4 profitability. eBay Browse is unchanged. DEMO fixtures are labelled
-            DEMO_SYNTHETIC — not live stock.
+            GPU scanner and Build 4 profitability. Live collection uses CeX&apos;s public JSON API. Demo rows are labelled
+            DEMO_SYNTHETIC and are not shop stock.
           </p>
         </div>
       </div>
@@ -153,22 +138,32 @@ function GpuTable({
   );
 }
 
+async function readImportFile(file: File): Promise<unknown> {
+  const text = await file.text();
+  return JSON.parse(text) as unknown;
+}
+
 export function CexOverviewPage() {
-  const demoScan = useCexDemoScan();
-  const [live, setLive] = useState<CexScanResult | null>(null);
-  const [busy, setBusy] = useState(false);
+  const { scan, busy, error, runLive, runDemo, importPayload } = useCexScan();
   const [sort, setSort] = useState<OpportunitySort>('BEST_OPPORTUNITY');
-  const resolved = live ?? demoScan;
+  const [importNote, setImportNote] = useState<string | null>(null);
   const bench = useMemo(() => gtx1080BenchmarkProfit(), []);
-  const api = import.meta.env.VITE_API_BASE_URL as string | undefined;
-  const gpuCount = resolved?.products.filter((p) => p.raw.categoryId === 892).length ?? 0;
+  const gpuCount = scan?.products.filter((p) => p.raw.categoryId === 892).length ?? 0;
+  const isDemo = scan?.products.some((p) => p.dataSource === 'DEMO_SYNTHETIC') && scan.status !== 'LIVE';
 
   return (
     <CexLayout>
       <div className="banner">
-        Collection state: {collectionBadge(resolved?.status ?? 'CACHED')}{' '}
-        {live ? 'Worker response (may be LIVE, CACHED, STALE, or UNAVAILABLE).' : 'DEMO_SYNTHETIC fixtures — not live CeX stock.'}
-        {resolved?.error ? ` ${resolved.error}` : null}
+        Collection state: {collectionBadge(scan?.status ?? 'CACHED')}{' '}
+        {isDemo
+          ? 'Showing DEMO_SYNTHETIC fixtures — not live CeX stock. Use Live GPU scan or import /boxes JSON.'
+          : scan?.status === 'UNAVAILABLE'
+            ? 'Live /boxes was blocked (often Cloudflare 403 from datacentre IPs). Import JSON captured in your browser, or rerun from a home IP.'
+            : scan?.status === 'LIVE'
+              ? 'Live or imported CeX inventory.'
+              : null}
+        {error ? ` ${error}` : null}
+        {scan?.error && scan.error !== error ? ` ${scan.error}` : null}
       </div>
       <div className="metrics">
         <div className="metric"><div className="k">Build 4 before GPU</div><div className="v">{formatGBP(BUILD4.costBeforeGpu)}</div></div>
@@ -180,50 +175,53 @@ export function CexOverviewPage() {
         CPU: {BUILD4.cpu} · PSU: {BUILD4.psu} · Spare GT 1030 is inventory-only and is <strong>not</strong> auto-allocated.
       </p>
       <div className="actions" style={{ border: 'none', paddingLeft: 0 }}>
-        <button
-          className="btn primary"
-          disabled={busy || !api}
-          onClick={async () => {
-            if (!api) return;
-            setBusy(true);
-            try {
-              const res = await fetch(`${api.replace(/\/$/, '')}/api/cex/scan`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mode: 'live', categories: 'gpu' }),
-              });
-              setLive((await res.json()) as CexScanResult);
-            } finally {
-              setBusy(false);
-            }
-          }}
-        >
-          Live GPU scan
+        <button className="btn primary" disabled={busy} onClick={() => void runLive()}>
+          {busy ? 'Scanning…' : 'Live GPU scan'}
         </button>
+        <button className="btn" disabled={busy} onClick={() => void runDemo()}>Reload demo</button>
+        <label className="btn" style={{ display: 'inline-flex', alignItems: 'center' }}>
+          Import /boxes JSON
+          <input
+            type="file"
+            accept="application/json,.json"
+            style={{ display: 'none' }}
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              e.target.value = '';
+              if (!file) return;
+              try {
+                const payload = await readImportFile(file);
+                await importPayload(payload);
+                setImportNote(`Imported ${file.name}`);
+              } catch (err) {
+                setImportNote(err instanceof Error ? err.message : 'Import failed');
+              }
+            }}
+          />
+        </label>
       </div>
-      {!api ? (
-        <p style={{ color: 'var(--muted)' }}>
-          No Worker URL configured. Live CeX collection stays on the Worker; this page still scores demo fixtures standalone.
-        </p>
-      ) : null}
-      {resolved ? (
+      <p style={{ color: 'var(--muted)' }}>
+        Import: on https://uk.webuy.com/ open DevTools → Network → the <code>boxes</code> request → copy response JSON and save as a file.
+        {importNote ? ` ${importNote}` : null}
+      </p>
+      {scan ? (
         <>
           <SortSelect sort={sort} onChange={setSort} />
           <GpuTable
-            opportunities={resolved.opportunities}
-            diffs={new Map(resolved.diffs.map((d) => [d.boxId, d.event]))}
+            opportunities={scan.opportunities}
+            diffs={new Map(scan.diffs.map((d) => [d.boxId, d.event]))}
             sort={sort}
           />
         </>
       ) : (
-        <p>Scoring demo inventory…</p>
+        <p>Scoring inventory…</p>
       )}
     </CexLayout>
   );
 }
 
 export function CexGpusPage() {
-  const scan = useCexDemoScan();
+  const { scan } = useCexScan();
   const [sort, setSort] = useState<OpportunitySort>('CHEAPEST');
   return (
     <CexLayout>
@@ -241,7 +239,7 @@ export function CexGpusPage() {
 }
 
 export function CexOpportunitiesPage() {
-  const scan = useCexDemoScan();
+  const { scan } = useCexScan();
   return (
     <CexLayout>
       <div className="banner">
@@ -281,7 +279,7 @@ export function CexOpportunitiesPage() {
 }
 
 export function CexHistoryPage() {
-  const scan = useCexDemoScan();
+  const { scan } = useCexScan();
   return (
     <CexLayout>
       <p>Snapshot events for the latest collection. Repeated identical rows are not stored.</p>

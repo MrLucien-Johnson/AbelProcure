@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { App } from './App';
 import { AppProvider } from './state/store';
+import { CexScanProvider } from './state/cexScan';
 import './styles/global.css';
 
 const redirect = sessionStorage.getItem('abelprocure-redirect');
@@ -19,7 +20,9 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '') || undefined}>
       <AppProvider>
-        <App />
+        <CexScanProvider>
+          <App />
+        </CexScanProvider>
       </AppProvider>
     </BrowserRouter>
   </StrictMode>,

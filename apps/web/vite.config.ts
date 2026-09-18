@@ -2,12 +2,14 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'node:path';
+import { cexDevApi } from './plugins/cexDevApi';
 
 const base = process.env.GITHUB_PAGES === 'true' ? '/AbelProcure/' : '/';
 
 export default defineConfig({
   base,
   plugins: [
+    cexDevApi(),
     react(),
     VitePWA({
       registerType: 'autoUpdate',
@@ -34,7 +36,8 @@ export default defineConfig({
     },
   },
   server: {
-    host: true,
+    host: '0.0.0.0',
     port: 5173,
+    strictPort: true,
   },
 });

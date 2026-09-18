@@ -60,6 +60,16 @@ Routes (existing screens untouched):
 
 With GitHub Pages base path: `/AbelProcure/cex` (BrowserRouter). Locally: `http://localhost:5173/cex`.
 
+**Live scan in the PWA** (`npm run dev`) posts to same-origin `POST /api/cex/scan` provided by the Vite plugin. You do **not** need the Cloudflare Worker for a local live/import scan.
+
+If CeX returns HTTP 403 (common from datacentre IPs):
+
+1. Click **Live GPU scan** — the UI will show `UNAVAILABLE` and keep the last inventory on screen.
+2. On a home/residential IP, the same button or `npm run cex:scan` may return real `/boxes` stock.
+3. Or **Import /boxes JSON**: browser DevTools → Network → `boxes` on uk.webuy.com → save the JSON → import. That is live inventory, scored for Build 4.
+
+Do not treat DEMO_SYNTHETIC rows as current CeX stock.
+
 Collection badge is one of `LIVE` / `CACHED` / `STALE` / `UNAVAILABLE` / `DISABLED`. Demo fixtures are `CACHED` + `DEMO_SYNTHETIC`.
 
 ## Profit algorithm (Build 4)

@@ -2,7 +2,7 @@ import { alertFromOpportunity, alertFromSnapshotEvent, dedupeAlerts, type CexAle
 import { CexClient, CexCollectionError, type CexFetchLog } from './client.ts';
 import { demoCexProducts } from './provider.ts';
 import { boxToProduct } from './normalise.ts';
-import { parseCexBoxesPayload } from './parse.ts';
+import { coerceCexImportPayload, parseCexBoxesPayload } from './parse.ts';
 import { scoreOpportunity, type CexOpportunity } from './opportunity.ts';
 import { InMemorySnapshotStore, snapshotFromProduct } from './snapshots.ts';
 import {
@@ -76,7 +76,7 @@ export async function runCexScan(opts: CexScanOptions): Promise<CexScanResult> {
       pages = 1;
     } else if (opts.mode === 'import') {
       if (opts.payload === undefined) throw new Error('import mode requires payload');
-      const parsed = parseCexBoxesPayload(opts.payload);
+      const parsed = parseCexBoxesPayload(coerceCexImportPayload(opts.payload));
       products = parsed.boxes.map((box) =>
         boxToProduct(box, {
           collectedAt,
