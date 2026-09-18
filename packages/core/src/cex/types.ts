@@ -3,12 +3,17 @@ import type { DataSource } from '../types/enums.ts';
 
 export const CEX_API_BASE_DEFAULT = 'https://wss2.cex.uk.webuy.io/v3';
 export const CEX_STOREFRONT_DEFAULT = 'https://uk.webuy.com';
+/** Same Algolia host the uk.webuy.com search box uses. Public, CORS *, no key. */
+export const CEX_SEARCH_API_DEFAULT = 'https://search.webuy.io';
+export const CEX_SEARCH_INDEX_DEFAULT = 'prod_cex_uk';
 
 export const CEX_USER_AGENT_DEFAULT = 'AbelProcure/0.1 (+https://github.com/MrLucien-Johnson/AbelProcure)';
 
 export interface CexConfig {
   readonly enabled: boolean;
   readonly apiBaseUrl: string;
+  readonly searchApiUrl: string;
+  readonly searchIndex: string;
   readonly storefrontBaseUrl: string;
   readonly requestDelayMs: number;
   readonly requestTimeoutMs: number;
@@ -26,6 +31,8 @@ export interface CexConfig {
 export const DEFAULT_CEX_CONFIG: CexConfig = {
   enabled: true,
   apiBaseUrl: CEX_API_BASE_DEFAULT,
+  searchApiUrl: CEX_SEARCH_API_DEFAULT,
+  searchIndex: CEX_SEARCH_INDEX_DEFAULT,
   storefrontBaseUrl: CEX_STOREFRONT_DEFAULT,
   requestDelayMs: 1500,
   requestTimeoutMs: 15000,
@@ -45,6 +52,8 @@ export function cexConfigFromEnv(env: Record<string, string | undefined>): CexCo
   return {
     enabled: flag !== 'false' && flag !== '0',
     apiBaseUrl: env.CEX_BASE_URL ?? CEX_API_BASE_DEFAULT,
+    searchApiUrl: env.CEX_SEARCH_URL ?? CEX_SEARCH_API_DEFAULT,
+    searchIndex: env.CEX_SEARCH_INDEX ?? CEX_SEARCH_INDEX_DEFAULT,
     storefrontBaseUrl: env.CEX_STOREFRONT_URL ?? CEX_STOREFRONT_DEFAULT,
     requestDelayMs: Number(env.CEX_REQUEST_DELAY ?? DEFAULT_CEX_CONFIG.requestDelayMs),
     requestTimeoutMs: Number(env.CEX_REQUEST_TIMEOUT ?? DEFAULT_CEX_CONFIG.requestTimeoutMs),
@@ -118,7 +127,7 @@ export interface CexProduct {
   readonly productUrl: string | null;
   readonly imageUrl: string | null;
   readonly collectedAt: string;
-  readonly dataSource: DataSource | 'CEX_WEBUY_API' | 'CEX_IMPORT';
+  readonly dataSource: DataSource | 'CEX_WEBUY_API' | 'CEX_STOREFRONT_SEARCH' | 'CEX_IMPORT';
   readonly collectionState: CexCollectionState;
   readonly raw: CexBox;
 }

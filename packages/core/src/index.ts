@@ -48,14 +48,15 @@ export {
   matchesCexQuery,
   cexInventoryHaystack,
 } from './cex/search.ts';
-export { cexConfigFromEnv, CEX_CATEGORIES, DEFAULT_CEX_CONFIG, type CexProduct, type CexCollectionState, type CexConfig } from './cex/types.ts';
+export { cexConfigFromEnv, CEX_CATEGORIES, DEFAULT_CEX_CONFIG, CEX_SEARCH_API_DEFAULT, CEX_SEARCH_INDEX_DEFAULT, type CexProduct, type CexCollectionState, type CexConfig } from './cex/types.ts';
 export { runCexScan, type CexScanResult } from './cex/scan.ts';
 export { scoreOpportunity, sortOpportunities, DEFAULT_OPPORTUNITY_WEIGHTS, DEFAULT_THRESHOLDS, type CexOpportunity, type OpportunitySort } from './cex/opportunity.ts';
 export { BUILD4, BUILD4_COST_BEFORE_GPU, GTX1080_BENCHMARK_LANDED, build4Profit, gtx1080BenchmarkProfit, classifyPsu, classifyCpuBalance } from './cex/profitability.ts';
-export { DEMO_CEX_BOXES, DEMO_CEX_BOXES_RESPONSE } from './cex/fixtures.ts';
+export { DEMO_CEX_BOXES, DEMO_CEX_BOXES_RESPONSE, STOREFRONT_SEARCH_RX6600_FIXTURE } from './cex/fixtures.ts';
 export { InMemorySnapshotStore, diffSnapshots, snapshotFromProduct } from './cex/snapshots.ts';
-export { CexClient, CexCollectionError } from './cex/client.ts';
-export { parseCexBoxesPayload, parseCexBoxesResponse, coerceCexImportPayload } from './cex/parse.ts';
+export { CexClient, CexCollectionError, type CexLiveChannel } from './cex/client.ts';
+export { parseCexBoxesPayload, parseCexBoxesResponse, coerceCexImportPayload, parseAlgoliaHit } from './cex/parse.ts';
+export { storefrontHitMatchesQuery, parseStorefrontSearchPayload } from './cex/storefront.ts';
 export { boxToProduct, productUrlForBox } from './cex/normalise.ts';
 export { performanceFor, GPU_PERFORMANCE } from './cex/performance.ts';
 export { matchCompletePcs } from './cex/comparables.ts';

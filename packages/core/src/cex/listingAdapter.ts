@@ -37,7 +37,7 @@ export function cexProductToListing(product: CexProduct): RawListing {
     itemLocation: 'United Kingdom',
     returnsAccepted: null,
     country: 'GB',
-    dataSource: product.dataSource === 'CEX_WEBUY_API' || product.dataSource === 'CEX_IMPORT' || product.dataSource === 'DEMO_SYNTHETIC'
+    dataSource: product.dataSource === 'CEX_WEBUY_API' || product.dataSource === 'CEX_STOREFRONT_SEARCH' || product.dataSource === 'CEX_IMPORT' || product.dataSource === 'DEMO_SYNTHETIC'
       ? product.dataSource
       : 'USER_ENTERED',
     firstSeenAt: product.collectedAt,

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { filterCexOpportunities, runCexScan, type CexOpportunity, type CexScanResult } from '@abelprocure/core';
+import { CexClient, filterCexOpportunities, runCexScan, type CexOpportunity, type CexScanResult } from '@abelprocure/core';
 
 const STORAGE_KEY = 'abelprocure-cex-scan-v1';
 
@@ -96,6 +96,58 @@ export function CexScanProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const runLive = useCallback(async (q?: string) => {
+    setBusy(true);
+    setError(null);
+    const queryText = q?.trim() || undefined;
+    try {
+      const client = new CexClient({ requestDelayMs: 1200, maxRetries: 1 });
+      const direct = await runCexScan({
+        mode: 'live',
+        categories: 'gpu',
+        query: queryText,
+        client,
+        allowDemoMarket: true,
+      });
+      if (direct.status === 'LIVE' && direct.products.length) {
+        setScan(direct);
+        return;
+      }
+      const res = await fetch(scanUrl(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'live', categories: 'gpu', query: queryText }),
+      });
+      const json = (await res.json()) as CexScanResult;
+      if (json.status === 'LIVE' && json.products.length) {
+        setScan(json);
+        return;
+      }
+      if (direct.products.length) {
+        setScan(direct);
+        return;
+      }
+      setScan((prev) => {
+        if (json.products.length) return json;
+        if (prev?.products.length) {
+          return {
+            ...prev,
+            status: json.status === 'UNAVAILABLE' ? 'UNAVAILABLE' : prev.status,
+            error: json.error ?? direct.error,
+            logs: json.logs,
+          };
+        }
+        return json;
+      });
+      if (json.error || direct.error) setError(json.error ?? direct.error ?? null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
   const matches = useMemo(
     () => filterCexOpportunities(scan?.opportunities ?? [], query),
     [scan, query],
@@ -109,11 +161,11 @@ export function CexScanProvider({ children }: { children: ReactNode }) {
       query,
       setQuery,
       matches,
-      runLive: (q?: string) => post({ mode: 'live', categories: 'gpu', query: q?.trim() || undefined }),
+      runLive,
       runDemo: () => post({ mode: 'demo', categories: 'gpu' }),
       importPayload: (payload: unknown) => post({ mode: 'import', categories: 'gpu', payload }),
     }),
-    [scan, busy, error, query, matches, post],
+    [scan, busy, error, query, matches, post, runLive],
   );
 
   return <CexScanContext.Provider value={value}>{children}</CexScanContext.Provider>;

@@ -42,6 +42,7 @@ export interface CexScanResult {
   pages: number;
   parseFailures: number;
   logs: CexFetchLog[];
+  channel?: 'BOXES' | 'STOREFRONT_SEARCH';
   error?: string;
 }
 
@@ -67,6 +68,7 @@ export async function runCexScan(opts: CexScanOptions): Promise<CexScanResult> {
   let pages = 0;
   const parseFailures = 0;
   let error: string | undefined;
+  let channel: CexScanResult['channel'];
 
   console.info('[cex] collection start', { mode: opts.mode, categories: opts.categories ?? 'gpu' });
 
@@ -96,19 +98,24 @@ export async function runCexScan(opts: CexScanOptions): Promise<CexScanResult> {
         throw new CexCollectionError('CEX_ENABLED=false', 'DISABLED');
       }
       const client = opts.client ?? new CexClient(config);
-      const page = await client.collectBoxes(categoryIds(opts.categories), opts.query?.trim() || undefined);
+      const page = await client.collectLive({
+        categoryIds: categoryIds(opts.categories),
+        q: opts.query?.trim() || undefined,
+      });
       logs.push(...client.logs);
       pages = Math.max(1, Math.ceil(page.boxes.length / Math.max(config.pageSize, 1)));
+      const fromStorefront = client.lastChannel === 'STOREFRONT_SEARCH';
       products = page.boxes.map((box) =>
         boxToProduct(box, {
           collectedAt,
-          dataSource: 'CEX_WEBUY_API',
+          dataSource: fromStorefront ? 'CEX_STOREFRONT_SEARCH' : 'CEX_WEBUY_API',
           collectionState: 'LIVE',
           storefront: config.storefrontBaseUrl,
         }),
       );
       status = client.lastStatus;
       lastSuccessAt = client.lastSuccessAt;
+      channel = client.lastChannel ?? undefined;
     }
   } catch (err) {
     error = err instanceof Error ? err.message : String(err);
@@ -144,6 +151,7 @@ export async function runCexScan(opts: CexScanOptions): Promise<CexScanResult> {
 
   console.info('[cex] collection end', {
     status,
+    channel: channel ?? null,
     products: products.length,
     new: diffs.filter((d) => d.event === 'NEW').length,
     changed: diffs.filter((d) => d.event !== 'UNCHANGED' && d.event !== 'NEW').length,
@@ -153,5 +161,5 @@ export async function runCexScan(opts: CexScanOptions): Promise<CexScanResult> {
     parseFailures,
   });
 
-  return { status, lastSuccessAt, products, diffs, opportunities, alerts, pages, parseFailures, logs, error };
+  return { status, lastSuccessAt, products, diffs, opportunities, alerts, pages, parseFailures, logs, channel, error };
 }

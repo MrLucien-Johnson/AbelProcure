@@ -177,3 +177,43 @@ export const DEMO_CEX_BOXES_RESPONSE = {
     },
   },
 };
+
+/** Captured-shape Algolia payload (uk.webuy.com search). Prices here are fixtures, not live stock. */
+export const STOREFRONT_SEARCH_RX6600_FIXTURE = {
+  results: [
+    {
+      nbHits: 2,
+      page: 0,
+      hits: [
+        {
+          boxId: 'SGRAMSI6600M2X8G01',
+          objectID: 'SGRAMSI6600M2X8G01',
+          boxName: 'MSI Radeon RX 6600 Mech 2X 8GB GDDR6',
+          categoryId: '892',
+          categoryName: 'Graphics Cards - PCI-E',
+          superCatName: 'Computing',
+          sellPrice: 195,
+          cashPriceCalculated: 120,
+          exchangePriceCalculated: 140,
+          inStockOnline: 1,
+          inStockStore: 1,
+          ecomQuantity: 4,
+          webSaleAllowed: 1,
+          imageUrls: { large: 'https://uk.static.webuy.com/product_images/Computing/Graphics Cards - PCI-E/SGRAMSI6600M2X8G01_l.jpg' },
+        },
+        {
+          boxId: 'DVD-UNRELATED',
+          boxName: 'Hercule Poirot: The First Cases',
+          categoryId: 50,
+          sellPrice: 4,
+          cashPriceCalculated: 1,
+          exchangePriceCalculated: 2,
+          inStockOnline: 1,
+          inStockStore: 1,
+          ecomQuantity: 1,
+          webSaleAllowed: 1,
+        },
+      ],
+    },
+  ],
+};

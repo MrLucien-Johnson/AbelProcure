@@ -19,7 +19,10 @@ export class CexMarketplaceProvider implements MarketplaceProvider {
 
   async search(query: SearchQuery): Promise<MarketplaceSearchResult> {
     try {
-      const products = await this.loadProducts(categoryIdsFor(query));
+      const keyword = query.keyword?.trim() ?? '';
+      const products = keyword
+        ? await this.fetchLive(categoryIdsFor(query), keyword)
+        : await this.loadProducts(categoryIdsFor(query));
       const filtered = filterCexProducts(products, query);
       return {
         items: filtered.map(cexProductToListing),
@@ -52,25 +55,26 @@ export class CexMarketplaceProvider implements MarketplaceProvider {
     if (!this.config.enabled) {
       throw new CexCollectionError('CEX_ENABLED=false', 'DISABLED');
     }
-    const collectedAt = new Date().toISOString();
-    try {
-      const page = await this.client.collectBoxes(categoryIds);
-      const products = page.boxes.map((box) =>
-        boxToProduct(box, {
-          collectedAt,
-          dataSource: 'CEX_WEBUY_API',
-          collectionState: 'LIVE',
-          storefront: this.config.storefrontBaseUrl,
-        }),
-      );
-      this.cache = { expires: now + this.config.cacheTtlMs, products };
-      return products;
-    } catch (err) {
-      if (err instanceof CexCollectionError && err.httpStatus === 403) {
-        return [];
-      }
-      throw err;
+    const products = await this.fetchLive(categoryIds, undefined);
+    this.cache = { expires: now + this.config.cacheTtlMs, products };
+    return products;
+  }
+
+  private async fetchLive(categoryIds: number[], q?: string): Promise<CexProduct[]> {
+    if (!this.config.enabled) {
+      throw new CexCollectionError('CEX_ENABLED=false', 'DISABLED');
     }
+    const collectedAt = new Date().toISOString();
+    const page = await this.client.collectLive({ categoryIds, q });
+    const fromStorefront = this.client.lastChannel === 'STOREFRONT_SEARCH';
+    return page.boxes.map((box) =>
+      boxToProduct(box, {
+        collectedAt,
+        dataSource: fromStorefront ? 'CEX_STOREFRONT_SEARCH' : 'CEX_WEBUY_API',
+        collectionState: 'LIVE',
+        storefront: this.config.storefrontBaseUrl,
+      }),
+    );
   }
 }
 

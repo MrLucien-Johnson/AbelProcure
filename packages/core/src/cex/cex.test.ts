@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { parseTitle } from '../parsers/normalise.ts';
 import { parseCexBoxesPayload, parseCexBoxesResponse, parseCexCategories, parseCexProductLines, parseBox } from './parse.ts';
 import { boxToProduct, productUrlForBox, resolveGpuCatalog } from './normalise.ts';
-import { DEMO_CEX_BOXES, DEMO_CEX_BOXES_RESPONSE } from './fixtures.ts';
+import { DEMO_CEX_BOXES, DEMO_CEX_BOXES_RESPONSE, STOREFRONT_SEARCH_RX6600_FIXTURE } from './fixtures.ts';
 import { InMemorySnapshotStore, diffSnapshots, snapshotFromProduct } from './snapshots.ts';
 import { CexClient } from './client.ts';
 import { runCexScan } from './scan.ts';
@@ -15,6 +15,7 @@ import { money } from '../money/money.ts';
 import { DEFAULT_CEX_CONFIG } from './types.ts';
 import { CexMarketplaceProvider } from './provider.ts';
 import { filterCexDiffs, filterCexOpportunities, filterCexProducts } from './search.ts';
+import { storefrontHitMatchesQuery, parseStorefrontSearchPayload } from './storefront.ts';
 
 const collected = {
   collectedAt: '2026-09-08T12:00:00.000Z',
@@ -388,6 +389,51 @@ describe('CeX inventory search', () => {
     const ids = new Set(filterCexOpportunities(result.opportunities, '3060').map((o) => o.product.boxId));
     const diffs = filterCexDiffs(result.diffs, '3060', ids);
     expect(diffs.every((d) => ids.has(d.boxId))).toBe(true);
+  });
+});
+
+describe('CeX storefront search (uk.webuy.com index)', () => {
+  it('maps Algolia hits and drops fuzzy unrelated titles', () => {
+    expect(storefrontHitMatchesQuery('MSI Radeon RX 6600 Mech 2X 8GB GDDR6', 'RX 6600')).toBe(true);
+    expect(storefrontHitMatchesQuery('Hercule Poirot: The First Cases', 'RX 6600')).toBe(false);
+    const parsed = parseStorefrontSearchPayload(STOREFRONT_SEARCH_RX6600_FIXTURE, 'RX 6600');
+    expect(parsed.boxes).toHaveLength(1);
+    expect(parsed.boxes[0]?.boxId).toBe('SGRAMSI6600M2X8G01');
+    expect(parsed.boxes[0]?.categoryId).toBe(892);
+    expect(parsed.boxes[0]?.cashPrice).toBe(120);
+    expect(parsed.boxes[0]?.outOfEcomStock).toBe(false);
+  });
+
+  it('live keyword scan uses the storefront index, not /boxes', async () => {
+    const fetchImpl = vi.fn(async (url: string) => {
+      expect(url).toContain('search.webuy.io');
+      expect(url).not.toContain('/boxes');
+      return new Response(JSON.stringify(STOREFRONT_SEARCH_RX6600_FIXTURE), { status: 200 });
+    });
+    const client = new CexClient({ requestDelayMs: 1, maxRetries: 0 }, fetchImpl as unknown as typeof fetch);
+    const result = await runCexScan({
+      mode: 'live',
+      query: 'RX 6600',
+      client,
+      allowDemoMarket: false,
+    });
+    expect(result.status).toBe('LIVE');
+    expect(result.channel).toBe('STOREFRONT_SEARCH');
+    expect(result.products).toHaveLength(1);
+    expect(result.products[0]?.dataSource).toBe('CEX_STOREFRONT_SEARCH');
+    expect(result.products[0]?.productUrl).toContain('SGRAMSI6600M2X8G01');
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to storefront search when /boxes returns 403', async () => {
+    const fetchImpl = vi.fn(async (url: string) => {
+      if (String(url).includes('/boxes')) return new Response('blocked', { status: 403 });
+      return new Response(JSON.stringify(STOREFRONT_SEARCH_RX6600_FIXTURE), { status: 200 });
+    });
+    const client = new CexClient({ requestDelayMs: 1, maxRetries: 0, maxPagesPerRun: 1 }, fetchImpl as unknown as typeof fetch);
+    const page = await client.collectLive({ categoryIds: [892] });
+    expect(page.boxes[0]?.boxId).toBe('SGRAMSI6600M2X8G01');
+    expect(client.lastChannel).toBe('STOREFRONT_SEARCH');
   });
 });
 

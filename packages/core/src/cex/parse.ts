@@ -149,6 +149,43 @@ function num(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
+export function parseAlgoliaHit(row: unknown): CexBox | null {
+  if (!row || typeof row !== 'object') return null;
+  const h = row as Record<string, unknown>;
+  const boxId = typeof h.boxId === 'string' ? h.boxId : typeof h.objectID === 'string' ? h.objectID : null;
+  const boxName = typeof h.boxName === 'string' ? h.boxName : null;
+  if (!boxId || !boxName) return null;
+  const categoryId =
+    typeof h.categoryId === 'number'
+      ? h.categoryId
+      : typeof h.categoryId === 'string' && /^\d+$/.test(h.categoryId)
+        ? Number(h.categoryId)
+        : null;
+  const images = h.imageUrls && typeof h.imageUrls === 'object' ? (h.imageUrls as { large?: unknown; medium?: unknown }) : null;
+  const inStockOnline = h.inStockOnline === 1 || h.inStockOnline === true;
+  const inStockStore = h.inStockStore === 1 || h.inStockStore === true;
+  const ecom =
+    num(h.ecomQuantity) ??
+    num(h.collectionQuantity) ??
+    (inStockOnline ? 1 : 0);
+  return {
+    boxId,
+    boxName,
+    categoryId,
+    categoryName: typeof h.categoryName === 'string' ? h.categoryName : null,
+    superCatName: typeof h.superCatName === 'string' ? h.superCatName : null,
+    sellPrice: num(h.sellPrice),
+    cashPrice: num(h.cashPriceCalculated) ?? num(h.cashBuyPrice) ?? num(h.cashPrice),
+    exchangePrice: num(h.exchangePriceCalculated) ?? num(h.exchangePrice),
+    outOfStock: !inStockStore,
+    outOfEcomStock: !inStockOnline,
+    ecomQuantityOnHand: ecom,
+    imageLarge: typeof images?.large === 'string' ? images.large : typeof h.productImage === 'string' ? h.productImage : null,
+    imageMedium: typeof images?.medium === 'string' ? images.medium : null,
+    cannotBuy: h.webSaleAllowed === 0 || h.boxWebSaleAllowed === 0 || h.boxSaleAllowed === 0,
+  };
+}
+
 function truthy(value: unknown): boolean {
   return value === 1 || value === true;
 }

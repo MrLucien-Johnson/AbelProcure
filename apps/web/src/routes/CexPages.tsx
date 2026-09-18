@@ -28,20 +28,22 @@ const SORTS: { id: OpportunitySort; label: string }[] = [
 function CexSearchBar() {
   const { query, setQuery, matches, scan, busy, runLive } = useCexScan();
   const total = scan?.opportunities.length ?? 0;
+  const live = scan?.status === 'LIVE';
   return (
     <form
       className="filters cex-search"
       style={{ marginBottom: 16 }}
       onSubmit={(e) => {
         e.preventDefault();
+        if (query.trim()) void runLive(query);
       }}
     >
-      <label>Search CeX inventory
+      <label>Search CeX UK
         <input
           type="search"
           value={query}
           autoComplete="off"
-          placeholder="RX 6600, 3060 Ti, BUY, Sapphire…"
+          placeholder="RX 6600, 3060 Ti, Sapphire…"
           onChange={(e) => setQuery(e.target.value)}
         />
       </label>
@@ -49,19 +51,18 @@ function CexSearchBar() {
         {query ? (
           <button type="button" className="btn" onClick={() => setQuery('')}>Clear</button>
         ) : null}
-        <button
-          type="button"
-          className="btn"
-          disabled={busy || !query.trim()}
-          onClick={() => void runLive(query)}
-        >
-          {busy ? 'Searching…' : 'Search live CeX'}
+        <button type="submit" className="btn primary" disabled={busy || !query.trim()}>
+          {busy ? 'Searching CeX…' : 'Search CeX UK'}
         </button>
       </div>
       <p style={{ color: 'var(--muted)', margin: '8px 0 0' }}>
-        {query.trim()
-          ? `${matches.length} of ${total} collected items match “${query.trim()}”. Live shop search needs a home IP or imported /boxes JSON.`
-          : `${total} collected items — type a model, brand, VRAM, or BUY/WATCH/PASS`}
+        {busy
+          ? 'Fetching live stock from the CeX UK website search index…'
+          : live && query.trim()
+            ? `${matches.length} live CeX UK result${matches.length === 1 ? '' : 's'} for “${query.trim()}” (${scan?.channel === 'STOREFRONT_SEARCH' ? 'uk.webuy.com search' : 'CeX API'}).`
+            : query.trim()
+              ? `${matches.length} of ${total} collected items match “${query.trim()}”. Press Search CeX UK to refresh from the live site.`
+              : `${total} collected items — type a GPU and press Search CeX UK to pull current shop stock.`}
       </p>
     </form>
   );
@@ -207,11 +208,13 @@ export function CexOverviewPage() {
       <div className="banner">
         Collection state: {collectionBadge(scan?.status ?? 'CACHED')}{' '}
         {isDemo
-          ? 'Showing DEMO_SYNTHETIC fixtures — not live CeX stock. Use Live GPU scan or import /boxes JSON.'
+          ? 'Showing DEMO_SYNTHETIC fixtures — not live CeX stock. Search CeX UK or Live GPU scan pulls current shop prices from uk.webuy.com.'
           : scan?.status === 'UNAVAILABLE'
-            ? 'Live /boxes was blocked (often Cloudflare 403 from datacentre IPs). Import JSON captured in your browser, or rerun from a home IP.'
-            : scan?.status === 'LIVE'
-              ? 'Live or imported CeX inventory.'
+            ? 'Live collection failed. The site search index is tried first; /boxes 403 is no longer a dead end.'
+            : scan?.status === 'LIVE' && scan.channel === 'STOREFRONT_SEARCH'
+              ? 'Live CeX UK stock from the same search index as uk.webuy.com.'
+              : scan?.status === 'LIVE'
+                ? 'Live or imported CeX inventory.'
               : null}
         {error ? ` ${error}` : null}
         {scan?.error && scan.error !== error ? ` ${scan.error}` : null}

@@ -22,13 +22,14 @@ Public JSON the site uses:
 | --- | --- |
 | `GET https://wss2.cex.uk.webuy.io/v3/productlines` | Taxonomy. Observed working. |
 | `GET .../categories?productLineIds=[7]` | Graphics line. PCI-E GPUs = **categoryId 892**. |
-| `GET .../boxes?categoryIds=[892]&firstRecord=1&count=50` | Inventory. Often **Cloudflare 403** from datacentre IPs. |
+| `GET .../boxes?categoryIds=[892]&firstRecord=1&count=50` | Inventory dump. Often **Cloudflare 403** from datacentre IPs. |
+| `POST https://search.webuy.io/1/indexes/*/queries` | **Same search index as uk.webuy.com.** CORS `*`, no key. Live keyword search uses this. Index `prod_cex_uk`. |
 
 We identify as `AbelProcure/0.1 (+https://github.com/MrLucien-Johnson/AbelProcure)`, default delay 1500ms, stop on 401/403/429. No stealth, no CAPTCHA bypass.
 
-Product URLs are `https://uk.webuy.com/product-detail?id={boxId}` constructed from the API `boxId`, never invented IDs.
+**Search CeX UK** in the PWA POSTs to that storefront index from the browser (and from the Vite/Worker scan as fallback). Fuzzy Algolia extras that do not share the query’s model number are dropped. Product URLs stay `https://uk.webuy.com/product-detail?id={boxId}`. Rows are labelled `CEX_STOREFRONT_SEARCH`.
 
-If `/boxes` is blocked: collection state is `UNAVAILABLE`, last success timestamp is kept, and you can `POST /api/cex/scan` with `{ "mode": "import", "payload": <raw /boxes JSON> }`.
+If `/boxes` is blocked, a category GPU scan also falls back to the storefront index (`filters=categoryId:892`). You can still `POST /api/cex/scan` with `{ "mode": "import", "payload": <raw /boxes JSON> }`.
 
 ## Commands
 
@@ -63,7 +64,7 @@ With GitHub Pages base path: `/AbelProcure/cex` (BrowserRouter). Locally: `http:
 
 **Live scan in the PWA** (`npm run dev`) posts to same-origin `POST /api/cex/scan` provided by the Vite plugin. You do **not** need the Cloudflare Worker for a local live/import scan.
 
-Search of CeX inventory is **against collected stock**. Live `/boxes` (optional `q=` keyword) is often Cloudflare 403 from datacentre IPs; typing a model still filters demo/imported rows. **Search live CeX** sends `{ "mode": "live", "query": "RX 6600" }`.
+Search of CeX inventory hits the **live uk.webuy.com search index** (`search.webuy.io`, `prod_cex_uk`) — the same request the shop website makes. `/boxes` 403 is no longer a dead end. Type a GPU and press **Search CeX UK** (or a one-click GPU chip). Results are labelled `CEX_STOREFRONT_SEARCH`. Demo fixtures stay `DEMO_SYNTHETIC` until a live search succeeds.
 
 If CeX returns HTTP 403 (common from datacentre IPs):
 

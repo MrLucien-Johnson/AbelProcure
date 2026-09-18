@@ -98,7 +98,7 @@ export function cexDevApi(): Plugin {
               query: typeof body.query === 'string' ? body.query : body.q,
               store,
               config: core.cexConfigFromEnv(process.env),
-              allowDemoMarket: mode === 'demo',
+              allowDemoMarket: true,
             });
             send(res, 200, last);
             return;

@@ -27,7 +27,7 @@ function matches(query: SearchQuery, title: string, type: string | null, listing
 
 export function SearchPage() {
   const { state, dispatch } = useApp();
-  const { scan, query: cexQuery, setQuery: setCexQuery } = useCexScan();
+  const { scan, query: cexQuery, setQuery: setCexQuery, runLive, busy } = useCexScan();
   const q = state.searchDraft;
   const results = visibleDeals(state).filter((d) =>
     matches(q, d.listing.title, d.component.componentType.value, d.listing.listingType, d.landed.landedCost.pence),
@@ -52,8 +52,9 @@ export function SearchPage() {
         <div>
           <h1>Search</h1>
           <p>
-            Keyword searches eBay deals <strong>and</strong> CeX inventory already collected on{' '}
-            <Link to="/cex">CeX UK</Link>. Live CeX shop crawl needs a successful scan or imported /boxes JSON — datacentre IPs often get HTTP 403.
+            Keyword searches eBay deals. <strong>Search CeX UK</strong> pulls current shop stock from the same search index as{' '}
+            <a href="https://uk.webuy.com/" target="_blank" rel="noreferrer">uk.webuy.com</a>
+            {' '}and scores it for Build 4. Demo rows stay labelled DEMO_SYNTHETIC until a live search succeeds.
           </p>
         </div>
       </div>
@@ -90,6 +91,16 @@ export function SearchPage() {
           <label><input type="checkbox" checked={q.ukOnly !== false} onChange={(e) => set({ ukOnly: e.target.checked })} /> UK only</label>
           <label><input type="checkbox" checked={q.includePostage !== false} onChange={(e) => set({ includePostage: e.target.checked })} /> Include postage</label>
           <button className="btn primary" onClick={() => dispatch({ type: 'SAVE_SEARCH', name: q.keyword || 'Untitled search' })}>Save search</button>
+          <button
+            className="btn primary"
+            disabled={busy || ![q.keyword, q.model, cexQuery].some((s) => s && s.trim())}
+            onClick={() => {
+              const needle = (cexQuery || q.keyword || q.model || '').trim();
+              if (needle) void runLive(needle);
+            }}
+          >
+            {busy ? 'Searching CeX…' : 'Search CeX UK'}
+          </button>
           <button className="btn" onClick={() => { dispatch({ type: 'SET_SEARCH', query: { ...EMPTY_SEARCH } }); setCexQuery(''); }}>Reset</button>
         </div>
       </div>
@@ -101,7 +112,19 @@ export function SearchPage() {
       </div>
       <div className="section-title">One-click GPUs</div>
       <div className="actions" style={{ border: 'none', paddingLeft: 0 }}>
-        {QUICK_FILTERS.gpu.map((g) => <button key={g.id} className="btn" onClick={() => set({ keyword: g.q, componentType: 'GPU' })}>{g.label}</button>)}
+        {QUICK_FILTERS.gpu.map((g) => (
+          <button
+            key={g.id}
+            className="btn"
+            disabled={busy}
+            onClick={() => {
+              set({ keyword: g.q, componentType: 'GPU' });
+              void runLive(g.q);
+            }}
+          >
+            {g.label}
+          </button>
+        ))}
       </div>
       <div className="section-title">CPUs</div>
       <div className="actions" style={{ border: 'none', paddingLeft: 0 }}>
@@ -113,15 +136,18 @@ export function SearchPage() {
           <button key={g.id} className="btn" onClick={() => set({ keyword: g.q })}>{g.label}</button>
         ))}
       </div>
-      <div className="section-title">CeX inventory ({cexHits.length})</div>
-      {scan?.status === 'UNAVAILABLE' ? (
+      <div className="section-title">CeX UK ({cexHits.length}{scan?.status === 'LIVE' ? ' live' : ''})</div>
+      {scan?.status === 'LIVE' && scan.channel === 'STOREFRONT_SEARCH' ? (
         <p style={{ color: 'var(--muted)' }}>
-          Live CeX /boxes is blocked from this IP. Search runs against demo or last imported stock.{' '}
-          <Link to="/cex">Open CeX UK</Link> to import JSON or retry live scan.
+          Live shop stock from uk.webuy.com search. Source {scan.products[0]?.dataSource ?? 'CEX_STOREFRONT_SEARCH'}.
+        </p>
+      ) : scan?.status === 'UNAVAILABLE' ? (
+        <p style={{ color: 'var(--muted)' }}>
+          Live CeX collection failed. Try Search CeX UK again, or <Link to="/cex">import /boxes JSON</Link>.
         </p>
       ) : (
         <p style={{ color: 'var(--muted)' }}>
-          Matching collected CeX stock (demo, last scan, or import). One-click GPU chips above also filter this table.
+          Collected CeX stock. Press <strong>Search CeX UK</strong> or a GPU chip to refresh from the live site.
         </p>
       )}
       {cexHits.length === 0 ? (
