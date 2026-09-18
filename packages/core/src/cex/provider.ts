@@ -5,6 +5,7 @@ import { CexClient, CexCollectionError } from './client.ts';
 import { boxToProduct } from './normalise.ts';
 import { DEMO_CEX_BOXES } from './fixtures.ts';
 import { cexProductToListing } from './listingAdapter.ts';
+import { filterCexProducts } from './search.ts';
 import { CEX_CATEGORIES, DEFAULT_CEX_CONFIG, type CexConfig, type CexProduct } from './types.ts';
 
 export class CexMarketplaceProvider implements MarketplaceProvider {
@@ -19,7 +20,7 @@ export class CexMarketplaceProvider implements MarketplaceProvider {
   async search(query: SearchQuery): Promise<MarketplaceSearchResult> {
     try {
       const products = await this.loadProducts(categoryIdsFor(query));
-      const filtered = filterProducts(products, query);
+      const filtered = filterCexProducts(products, query);
       return {
         items: filtered.map(cexProductToListing),
         total: filtered.length,
@@ -87,21 +88,6 @@ export function demoCexProducts(collectedAt = new Date().toISOString()): CexProd
 function categoryIdsFor(query: SearchQuery): number[] {
   if (query.componentType === 'CPU') return [CEX_CATEGORIES.amdCpu.categoryId, CEX_CATEGORIES.intelCpu.categoryId];
   return [CEX_CATEGORIES.gpuPcie.categoryId];
-}
-
-function filterProducts(products: CexProduct[], query: SearchQuery): CexProduct[] {
-  const keyword = query.keyword?.trim().toLowerCase();
-  return products.filter((p) => {
-    if (query.componentType === 'GPU' && p.raw.categoryId && p.raw.categoryId !== CEX_CATEGORIES.gpuPcie.categoryId) {
-      return false;
-    }
-    if (query.maxItemPence && p.sell && p.sell.pence > query.maxItemPence) return false;
-    if (query.vramGb && p.vramGb && p.vramGb !== query.vramGb) return false;
-    if (keyword && !p.title.toLowerCase().includes(keyword) && !(p.normalisedModel ?? '').toLowerCase().includes(keyword)) {
-      return false;
-    }
-    return true;
-  });
 }
 
 export const cexProvider = new CexMarketplaceProvider();

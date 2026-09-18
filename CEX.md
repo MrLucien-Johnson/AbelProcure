@@ -53,14 +53,17 @@ curl -X POST "$APP_BASE_URL/internal/cex-scan" -H "x-cron-key: $WEBHOOK_VERIFICA
 
 Routes (existing screens untouched):
 
-- `/cex` overview
+- `/cex` overview — **Search CeX inventory** filters collected stock (demo, last scan, or import)
 - `/cex/gpus`
 - `/cex/opportunities`
 - `/cex/history`
+- `/search` — Keyword and one-click GPU chips also match collected CeX inventory (not only eBay)
 
 With GitHub Pages base path: `/AbelProcure/cex` (BrowserRouter). Locally: `http://localhost:5173/cex`.
 
 **Live scan in the PWA** (`npm run dev`) posts to same-origin `POST /api/cex/scan` provided by the Vite plugin. You do **not** need the Cloudflare Worker for a local live/import scan.
+
+Search of CeX inventory is **against collected stock**. Live `/boxes` (optional `q=` keyword) is often Cloudflare 403 from datacentre IPs; typing a model still filters demo/imported rows. **Search live CeX** sends `{ "mode": "live", "query": "RX 6600" }`.
 
 If CeX returns HTTP 403 (common from datacentre IPs):
 

@@ -19,6 +19,8 @@ import type { SoldObservation } from './market.ts';
 export interface CexScanOptions {
   mode: 'live' | 'demo' | 'import';
   categories?: 'gpu' | 'all';
+  /** Optional storefront `q` for live /boxes keyword search. Local demo/import still filters in the UI. */
+  query?: string;
   payload?: unknown;
   config?: Partial<CexConfig>;
   client?: CexClient;
@@ -94,7 +96,7 @@ export async function runCexScan(opts: CexScanOptions): Promise<CexScanResult> {
         throw new CexCollectionError('CEX_ENABLED=false', 'DISABLED');
       }
       const client = opts.client ?? new CexClient(config);
-      const page = await client.collectBoxes(categoryIds(opts.categories));
+      const page = await client.collectBoxes(categoryIds(opts.categories), opts.query?.trim() || undefined);
       logs.push(...client.logs);
       pages = Math.max(1, Math.ceil(page.boxes.length / Math.max(config.pageSize, 1)));
       products = page.boxes.map((box) =>

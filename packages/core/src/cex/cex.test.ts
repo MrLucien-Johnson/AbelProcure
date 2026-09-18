@@ -14,6 +14,7 @@ import { matchCompletePcs } from './comparables.ts';
 import { money } from '../money/money.ts';
 import { DEFAULT_CEX_CONFIG } from './types.ts';
 import { CexMarketplaceProvider } from './provider.ts';
+import { filterCexDiffs, filterCexOpportunities, filterCexProducts } from './search.ts';
 
 const collected = {
   collectedAt: '2026-09-08T12:00:00.000Z',
@@ -350,6 +351,43 @@ describe('CeX client failure handling (no live hammering)', () => {
     const provider = new CexMarketplaceProvider(new CexClient({ requestDelayMs: 1 }, fetchImpl as unknown as typeof fetch));
     const result = await provider.search({ keyword: '6600', ukOnly: true });
     expect(result.integrationState === 'ERROR' || result.items.length === 0).toBe(true);
+  });
+
+  it('sends q= on live boxes keyword search without evasion retries', async () => {
+    const fetchImpl = vi.fn(async (url: string) => {
+      expect(decodeURIComponent(url)).toMatch(/q=RX[ +]6600/);
+      return new Response('blocked', { status: 403 });
+    });
+    const client = new CexClient({ maxRetries: 2, requestDelayMs: 1 }, fetchImpl as unknown as typeof fetch);
+    await expect(client.boxesPage({ categoryIds: [892], q: 'RX 6600', firstRecord: 1, count: 50 })).rejects.toMatchObject({
+      httpStatus: 403,
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('CeX inventory search', () => {
+  it('finds demo stock by model, compact token, and decision', async () => {
+    const result = await runCexScan({ mode: 'demo', allowDemoMarket: true });
+    const byModel = filterCexOpportunities(result.opportunities, 'RX 6600');
+    expect(byModel.length).toBeGreaterThan(0);
+    expect(byModel.every((o) => /6600/i.test(o.product.title) || o.product.modelKey === 'rx-6600')).toBe(true);
+    expect(filterCexOpportunities(result.opportunities, 'rx6600').map((o) => o.product.boxId)).toEqual(
+      byModel.map((o) => o.product.boxId),
+    );
+    const buys = filterCexOpportunities(result.opportunities, 'BUY');
+    expect(buys.length).toBeGreaterThan(0);
+    expect(buys.every((o) => o.decision === 'BUY')).toBe(true);
+  });
+
+  it('filters products and snapshot diffs by the same needle', async () => {
+    const result = await runCexScan({ mode: 'demo', allowDemoMarket: true });
+    const products = filterCexProducts(result.products, '3060');
+    expect(products.length).toBeGreaterThan(0);
+    expect(products.every((p) => /3060/i.test(p.title))).toBe(true);
+    const ids = new Set(filterCexOpportunities(result.opportunities, '3060').map((o) => o.product.boxId));
+    const diffs = filterCexDiffs(result.diffs, '3060', ids);
+    expect(diffs.every((d) => ids.has(d.boxId))).toBe(true);
   });
 });
 

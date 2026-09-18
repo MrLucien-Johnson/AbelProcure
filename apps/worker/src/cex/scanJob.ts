@@ -85,11 +85,12 @@ export async function persistCexScan(db: D1Database, result: CexScanResult): Pro
   }
 }
 
-export async function runWorkerCexScan(env: Env, mode: 'gpu' | 'all' | 'demo' = 'gpu'): Promise<CexScanResult> {
+export async function runWorkerCexScan(env: Env, mode: 'gpu' | 'all' | 'demo' = 'gpu', query?: string): Promise<CexScanResult> {
   const config = cexConfigFromEnv(env as unknown as Record<string, string | undefined>);
   const result = await runCexScan({
     mode: config.enabled ? 'live' : 'demo',
     categories: mode === 'all' ? 'all' : 'gpu',
+    query,
     config,
     allowDemoMarket: false,
   });

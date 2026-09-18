@@ -1,5 +1,7 @@
-import { EMPTY_SEARCH, QUICK_FILTERS, SEARCH_PRESETS, type SearchQuery } from '@abelprocure/core';
+import { EMPTY_SEARCH, QUICK_FILTERS, SEARCH_PRESETS, filterCexOpportunities, formatGBP, type SearchQuery } from '@abelprocure/core';
+import { Link } from 'react-router-dom';
 import { DealGrid } from '../components/deals/DealCard';
+import { useCexScan } from '../state/cexScan';
 import { useApp, visibleDeals } from '../state/store';
 
 function matches(query: SearchQuery, title: string, type: string | null, listingType: string, landed: number): boolean {
@@ -25,24 +27,46 @@ function matches(query: SearchQuery, title: string, type: string | null, listing
 
 export function SearchPage() {
   const { state, dispatch } = useApp();
+  const { scan, query: cexQuery, setQuery: setCexQuery } = useCexScan();
   const q = state.searchDraft;
   const results = visibleDeals(state).filter((d) =>
     matches(q, d.listing.title, d.component.componentType.value, d.listing.listingType, d.landed.landedCost.pence),
   );
+  const cexNeedle = [cexQuery || q.keyword, q.model, q.manufacturer].filter(Boolean).join(' ');
+  const cexHits = filterCexOpportunities(scan?.opportunities ?? [], cexNeedle).filter((o) => {
+    if (q.componentType === 'GPU' && o.product.raw.categoryId && o.product.raw.categoryId !== 892) return false;
+    if (q.componentType === 'CPU' && o.product.raw.categoryId === 892) return false;
+    if (q.maxLandedPence && o.product.sell && o.product.sell.pence > q.maxLandedPence) return false;
+    return true;
+  });
 
-  const set = (patch: Partial<SearchQuery>) => dispatch({ type: 'SET_SEARCH', query: { ...q, ...patch } });
+  const set = (patch: Partial<SearchQuery>) => {
+    const next = { ...q, ...patch };
+    dispatch({ type: 'SET_SEARCH', query: next });
+    if (patch.keyword !== undefined) setCexQuery(patch.keyword);
+  };
 
   return (
     <div>
       <div className="page-head">
         <div>
           <h1>Search</h1>
-          <p>Advanced filters plus one-click component hunts. Multiple saved searches can run on the worker.</p>
+          <p>
+            Keyword searches eBay deals <strong>and</strong> CeX inventory already collected on{' '}
+            <Link to="/cex">CeX UK</Link>. Live CeX shop crawl needs a successful scan or imported /boxes JSON — datacentre IPs often get HTTP 403.
+          </p>
         </div>
       </div>
       <div className="filters">
         <div className="form-grid">
-          <label>Keyword<input value={q.keyword ?? ''} onChange={(e) => set({ keyword: e.target.value })} /></label>
+          <label>Keyword
+            <input
+              type="search"
+              value={q.keyword ?? ''}
+              placeholder="RX 6600 — eBay + CeX"
+              onChange={(e) => set({ keyword: e.target.value })}
+            />
+          </label>
           <label>Component
             <select value={q.componentType ?? ''} onChange={(e) => set({ componentType: e.target.value as SearchQuery['componentType'] })}>
               <option value="">Any</option>
@@ -66,7 +90,7 @@ export function SearchPage() {
           <label><input type="checkbox" checked={q.ukOnly !== false} onChange={(e) => set({ ukOnly: e.target.checked })} /> UK only</label>
           <label><input type="checkbox" checked={q.includePostage !== false} onChange={(e) => set({ includePostage: e.target.checked })} /> Include postage</label>
           <button className="btn primary" onClick={() => dispatch({ type: 'SAVE_SEARCH', name: q.keyword || 'Untitled search' })}>Save search</button>
-          <button className="btn" onClick={() => dispatch({ type: 'SET_SEARCH', query: { ...EMPTY_SEARCH } })}>Reset</button>
+          <button className="btn" onClick={() => { dispatch({ type: 'SET_SEARCH', query: { ...EMPTY_SEARCH } }); setCexQuery(''); }}>Reset</button>
         </div>
       </div>
       <div className="section-title">Presets</div>
@@ -89,7 +113,58 @@ export function SearchPage() {
           <button key={g.id} className="btn" onClick={() => set({ keyword: g.q })}>{g.label}</button>
         ))}
       </div>
-      <div className="section-title">Results ({results.length})</div>
+      <div className="section-title">CeX inventory ({cexHits.length})</div>
+      {scan?.status === 'UNAVAILABLE' ? (
+        <p style={{ color: 'var(--muted)' }}>
+          Live CeX /boxes is blocked from this IP. Search runs against demo or last imported stock.{' '}
+          <Link to="/cex">Open CeX UK</Link> to import JSON or retry live scan.
+        </p>
+      ) : (
+        <p style={{ color: 'var(--muted)' }}>
+          Matching collected CeX stock (demo, last scan, or import). One-click GPU chips above also filter this table.
+        </p>
+      )}
+      {cexHits.length === 0 ? (
+        <p style={{ color: 'var(--muted)' }}>
+          {cexNeedle.trim()
+            ? `No CeX matches for “${cexNeedle.trim()}” in the current collected inventory.`
+            : 'No CeX inventory loaded yet. Open CeX UK to load demo stock.'}
+        </p>
+      ) : (
+        <div className="table-wrap" style={{ marginBottom: 22 }}>
+          <table>
+            <thead>
+              <tr><th>GPU</th><th>CeX</th><th>Decision</th><th>Net</th><th>Source</th><th></th></tr>
+            </thead>
+            <tbody>
+              {cexHits.slice(0, 20).map((o) => (
+                <tr key={o.product.boxId}>
+                  <td>
+                    {o.product.normalisedModel ?? o.product.title}
+                    <div style={{ color: 'var(--muted)', fontSize: 11 }}>{o.product.title}</div>
+                  </td>
+                  <td>{o.product.sell ? formatGBP(o.product.sell) : '—'}</td>
+                  <td>
+                    <span className={`badge ${o.decision === 'BUY' ? 'STRONG_BUY' : o.decision === 'PASS' ? 'PASS' : 'WATCH'}`}>
+                      {o.decision}
+                    </span>
+                  </td>
+                  <td>{o.profit.net ? formatGBP(o.profit.net) : '—'}</td>
+                  <td>{o.product.dataSource === 'DEMO_SYNTHETIC' ? 'DEMO_SYNTHETIC' : o.product.dataSource}</td>
+                  <td>
+                    {o.product.productUrl ? (
+                      <a href={o.product.productUrl} target="_blank" rel="noreferrer">CeX</a>
+                    ) : null}
+                    {' '}
+                    <Link to="/cex">Score</Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <div className="section-title">eBay results ({results.length})</div>
       <DealGrid deals={results} />
     </div>
   );

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { runCexScan, type CexScanResult } from '@abelprocure/core';
+import { filterCexOpportunities, runCexScan, type CexOpportunity, type CexScanResult } from '@abelprocure/core';
 
 const STORAGE_KEY = 'abelprocure-cex-scan-v1';
 
@@ -13,7 +13,10 @@ interface CexScanContextValue {
   scan: CexScanResult | null;
   busy: boolean;
   error: string | null;
-  runLive: () => Promise<void>;
+  query: string;
+  setQuery: (q: string) => void;
+  matches: CexOpportunity[];
+  runLive: (query?: string) => Promise<void>;
   runDemo: () => Promise<void>;
   importPayload: (payload: unknown) => Promise<void>;
 }
@@ -24,6 +27,7 @@ export function CexScanProvider({ children }: { children: ReactNode }) {
   const [scan, setScan] = useState<CexScanResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     try {
@@ -92,16 +96,24 @@ export function CexScanProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const matches = useMemo(
+    () => filterCexOpportunities(scan?.opportunities ?? [], query),
+    [scan, query],
+  );
+
   const value = useMemo<CexScanContextValue>(
     () => ({
       scan,
       busy,
       error,
-      runLive: () => post({ mode: 'live', categories: 'gpu' }),
+      query,
+      setQuery,
+      matches,
+      runLive: (q?: string) => post({ mode: 'live', categories: 'gpu', query: q?.trim() || undefined }),
       runDemo: () => post({ mode: 'demo', categories: 'gpu' }),
       importPayload: (payload: unknown) => post({ mode: 'import', categories: 'gpu', payload }),
     }),
-    [scan, busy, error, post],
+    [scan, busy, error, query, matches, post],
   );
 
   return <CexScanContext.Provider value={value}>{children}</CexScanContext.Provider>;

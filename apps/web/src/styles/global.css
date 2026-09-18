@@ -284,6 +284,11 @@ input, select, textarea {
 }
 .cex-subnav a.active { color: var(--amber); border-color: var(--amber); }
 
+.cex-search input[type="search"] {
+  min-width: min(100%, 420px);
+  font-size: 15px;
+}
+
 .badge.BUY, .badge.STRONG_BUY { background: #19331f; color: #7dffb4; }
 .badge.LIVE { background: #173528; color: var(--green); }
 .badge.CACHED { background: #2a2418; color: #e6c27a; }

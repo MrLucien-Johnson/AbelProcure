@@ -41,6 +41,13 @@ export { InAppNotificationProvider, UnconfiguredProvider, type NotificationProvi
 export type { MarketplaceProvider, MarketplaceSearchResult } from './marketplace/types.ts';
 export { facebookMarketplaceProvider, gumtreeMarketplaceProvider, cashConvertersProvider } from './marketplace/stubs.ts';
 export { CexMarketplaceProvider, cexProvider, demoCexProducts } from './cex/provider.ts';
+export {
+  filterCexOpportunities,
+  filterCexProducts,
+  filterCexDiffs,
+  matchesCexQuery,
+  cexInventoryHaystack,
+} from './cex/search.ts';
 export { cexConfigFromEnv, CEX_CATEGORIES, DEFAULT_CEX_CONFIG, type CexProduct, type CexCollectionState, type CexConfig } from './cex/types.ts';
 export { runCexScan, type CexScanResult } from './cex/scan.ts';
 export { scoreOpportunity, sortOpportunities, DEFAULT_OPPORTUNITY_WEIGHTS, DEFAULT_THRESHOLDS, type CexOpportunity, type OpportunitySort } from './cex/opportunity.ts';

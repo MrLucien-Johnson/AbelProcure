@@ -87,12 +87,15 @@ export function cexDevApi(): Plugin {
               mode?: 'live' | 'demo' | 'import';
               categories?: 'gpu' | 'all';
               payload?: unknown;
+              query?: string;
+              q?: string;
             };
             const mode = body.mode ?? 'live';
             last = await core.runCexScan({
               mode,
               categories: body.categories === 'all' ? 'all' : 'gpu',
               payload: body.payload,
+              query: typeof body.query === 'string' ? body.query : body.q,
               store,
               config: core.cexConfigFromEnv(process.env),
               allowDemoMarket: mode === 'demo',

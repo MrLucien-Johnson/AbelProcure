@@ -15,6 +15,7 @@ import { cexConfigFromEnv, runCexScan, formatGBP } from '@abelprocure/core';
 const args = process.argv.slice(2);
 const modeArg = args.find((a) => a.startsWith('--mode='))?.slice('--mode='.length);
 const importFile = args.find((a) => a.startsWith('--import='))?.slice('--import='.length);
+const query = args.find((a) => a.startsWith('--q='))?.slice('--q='.length);
 const categories = args.includes('--all') ? 'all' : 'gpu';
 
 const mode = importFile ? 'import' : modeArg === 'demo' ? 'demo' : modeArg === 'import' ? 'import' : 'live';
@@ -25,6 +26,7 @@ const result = await runCexScan({
   mode,
   categories,
   payload,
+  query,
   config: cexConfigFromEnv(process.env),
   allowDemoMarket: mode === 'demo',
 });

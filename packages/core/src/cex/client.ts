@@ -123,19 +123,19 @@ export class CexClient {
     return parseCexCategories(text);
   }
 
-  async boxesPage(opts: { categoryIds: number[]; firstRecord: number; count: number }) {
-    const cats = encodeURIComponent(JSON.stringify(opts.categoryIds));
-    const path =
-      `/boxes?categoryIds=${cats}` +
-      `&firstRecord=${opts.firstRecord}` +
-      `&count=${opts.count}` +
-      `&sortBy=relevance` +
-      `&sortOrder=desc`;
-    const { text } = await this.get(path);
+  async boxesPage(opts: { categoryIds?: number[]; q?: string; firstRecord: number; count: number }) {
+    const params = new URLSearchParams();
+    if (opts.categoryIds?.length) params.set('categoryIds', JSON.stringify(opts.categoryIds));
+    if (opts.q?.trim()) params.set('q', opts.q.trim());
+    params.set('firstRecord', String(opts.firstRecord));
+    params.set('count', String(opts.count));
+    params.set('sortBy', 'relevance');
+    params.set('sortOrder', 'desc');
+    const { text } = await this.get(`/boxes?${params.toString()}`);
     return parseCexBoxesResponse(text);
   }
 
-  async collectBoxes(categoryIds: number[]) {
+  async collectBoxes(categoryIds: number[], q?: string) {
     if (!this.config.enabled) {
       throw new CexCollectionError('CEX_ENABLED=false', 'DISABLED');
     }
@@ -151,6 +151,7 @@ export class CexClient {
       if (page > 0) await sleep(this.config.requestDelayMs);
       const chunk = await this.boxesPage({
         categoryIds,
+        q,
         firstRecord: first,
         count: this.config.pageSize,
       });

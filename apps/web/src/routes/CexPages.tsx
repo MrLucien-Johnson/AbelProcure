@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import {
   BUILD4,
   GTX1080_BENCHMARK_LANDED,
+  filterCexDiffs,
   formatGBP,
   gtx1080BenchmarkProfit,
   money,
@@ -23,6 +24,48 @@ const SORTS: { id: OpportunitySort; label: string }[] = [
   { id: 'NEW_STOCK', label: 'New stock' },
   { id: 'PRICE_DROP', label: 'Price drop' },
 ];
+
+function CexSearchBar() {
+  const { query, setQuery, matches, scan, busy, runLive } = useCexScan();
+  const total = scan?.opportunities.length ?? 0;
+  return (
+    <form
+      className="filters cex-search"
+      style={{ marginBottom: 16 }}
+      onSubmit={(e) => {
+        e.preventDefault();
+      }}
+    >
+      <label>Search CeX inventory
+        <input
+          type="search"
+          value={query}
+          autoComplete="off"
+          placeholder="RX 6600, 3060 Ti, BUY, Sapphire…"
+          onChange={(e) => setQuery(e.target.value)}
+        />
+      </label>
+      <div className="actions" style={{ border: 'none', padding: '8px 0 0' }}>
+        {query ? (
+          <button type="button" className="btn" onClick={() => setQuery('')}>Clear</button>
+        ) : null}
+        <button
+          type="button"
+          className="btn"
+          disabled={busy || !query.trim()}
+          onClick={() => void runLive(query)}
+        >
+          {busy ? 'Searching…' : 'Search live CeX'}
+        </button>
+      </div>
+      <p style={{ color: 'var(--muted)', margin: '8px 0 0' }}>
+        {query.trim()
+          ? `${matches.length} of ${total} collected items match “${query.trim()}”. Live shop search needs a home IP or imported /boxes JSON.`
+          : `${total} collected items — type a model, brand, VRAM, or BUY/WATCH/PASS`}
+      </p>
+    </form>
+  );
+}
 
 function collectionBadge(state: string) {
   const cls = state === 'LIVE' ? 'GOOD' : state === 'CACHED' ? 'WATCH' : state === 'STALE' ? 'WEAK' : 'PASS';
@@ -47,6 +90,7 @@ function CexLayout({ children }: { children: React.ReactNode }) {
         <NavLink to="/cex/opportunities">Opportunities</NavLink>
         <NavLink to="/cex/history">History</NavLink>
       </nav>
+      <CexSearchBar />
       {children}
     </div>
   );
@@ -74,6 +118,13 @@ function GpuTable({
   sort: OpportunitySort;
 }) {
   const rows = sortOpportunities(opportunities, sort, diffs);
+  if (rows.length === 0) {
+    return (
+      <p style={{ color: 'var(--muted)' }}>
+        No collected CeX items match this search. Try RX 6600, 3060, or BUY — or import /boxes JSON from uk.webuy.com.
+      </p>
+    );
+  }
   return (
     <div className="table-wrap">
       <table>
@@ -144,7 +195,7 @@ async function readImportFile(file: File): Promise<unknown> {
 }
 
 export function CexOverviewPage() {
-  const { scan, busy, error, runLive, runDemo, importPayload } = useCexScan();
+  const { scan, busy, error, runLive, runDemo, importPayload, matches } = useCexScan();
   const [sort, setSort] = useState<OpportunitySort>('BEST_OPPORTUNITY');
   const [importNote, setImportNote] = useState<string | null>(null);
   const bench = useMemo(() => gtx1080BenchmarkProfit(), []);
@@ -208,7 +259,7 @@ export function CexOverviewPage() {
         <>
           <SortSelect sort={sort} onChange={setSort} />
           <GpuTable
-            opportunities={scan.opportunities}
+            opportunities={matches}
             diffs={new Map(scan.diffs.map((d) => [d.boxId, d.event]))}
             sort={sort}
           />
@@ -221,7 +272,7 @@ export function CexOverviewPage() {
 }
 
 export function CexGpusPage() {
-  const { scan } = useCexScan();
+  const { scan, matches } = useCexScan();
   const [sort, setSort] = useState<OpportunitySort>('CHEAPEST');
   return (
     <CexLayout>
@@ -229,7 +280,7 @@ export function CexGpusPage() {
       <SortSelect sort={sort} onChange={setSort} />
       {scan ? (
         <GpuTable
-          opportunities={scan.opportunities}
+          opportunities={matches}
           diffs={new Map(scan.diffs.map((d) => [d.boxId, d.event]))}
           sort={sort}
         />
@@ -239,13 +290,18 @@ export function CexGpusPage() {
 }
 
 export function CexOpportunitiesPage() {
-  const { scan } = useCexScan();
+  const { matches, query } = useCexScan();
   return (
     <CexLayout>
       <div className="banner">
         Explainable scores. A cheap GPU is not automatically a bargain versus the £100.15 GTX 1080 offer.
       </div>
-      {scan?.opportunities.map((o) => (
+      {matches.length === 0 ? (
+        <p style={{ color: 'var(--muted)' }}>
+          {query.trim() ? `No scored opportunities match “${query.trim()}”.` : 'No scored opportunities in the current collection.'}
+        </p>
+      ) : null}
+      {matches.map((o) => (
         <article key={o.product.boxId} className="card" style={{ padding: 16, marginBottom: 14 }}>
           <div className={`badge ${o.decision === 'BUY' ? 'STRONG_BUY' : o.decision === 'PASS' ? 'PASS' : 'WATCH'}`}>
             {o.decision}
@@ -279,27 +335,34 @@ export function CexOpportunitiesPage() {
 }
 
 export function CexHistoryPage() {
-  const { scan } = useCexScan();
+  const { scan, query, matches } = useCexScan();
+  const diffs = filterCexDiffs(scan?.diffs ?? [], query, new Set(matches.map((o) => o.product.boxId)));
   return (
     <CexLayout>
       <p>Snapshot events for the latest collection. Repeated identical rows are not stored.</p>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr><th>Box</th><th>Event</th><th>Previous</th><th>Current</th></tr>
-          </thead>
-          <tbody>
-            {scan?.diffs.map((d) => (
-              <tr key={d.boxId}>
-                <td>{d.boxId}</td>
-                <td>{d.event}</td>
-                <td>{d.previousSellPence !== null ? moneyText(d.previousSellPence) : '—'}</td>
-                <td>{d.currentSellPence !== null ? moneyText(d.currentSellPence) : '—'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {diffs.length === 0 ? (
+        <p style={{ color: 'var(--muted)' }}>
+          {query.trim() ? `No snapshot events match “${query.trim()}”.` : 'No snapshot events yet.'}
+        </p>
+      ) : (
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Box</th><th>Event</th><th>Previous</th><th>Current</th></tr>
+            </thead>
+            <tbody>
+              {diffs.map((d) => (
+                <tr key={d.boxId}>
+                  <td>{d.boxId}</td>
+                  <td>{d.event}</td>
+                  <td>{d.previousSellPence !== null ? moneyText(d.previousSellPence) : '—'}</td>
+                  <td>{d.currentSellPence !== null ? moneyText(d.currentSellPence) : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </CexLayout>
   );
 }

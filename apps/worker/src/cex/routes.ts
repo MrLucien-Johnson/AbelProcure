@@ -35,11 +35,13 @@ export function cexRoutes() {
   app.post('/api/cex/scan', async (c) => {
     const body = await c.req.json().catch(() => ({} as Record<string, unknown>));
     const categories = body.categories === 'all' ? 'all' : 'gpu';
+    const query = typeof body.query === 'string' ? body.query : typeof body.q === 'string' ? body.q : undefined;
     if (body.mode === 'import' && body.payload) {
       const result = await runCexScan({
         mode: 'import',
         payload: body.payload,
         categories,
+        query,
         allowDemoMarket: false,
       });
       if (c.env.DB) await persistCexScan(c.env.DB, result).catch(() => undefined);
@@ -48,7 +50,7 @@ export function cexRoutes() {
     if (body.mode === 'demo') {
       return c.json(await runCexScan({ mode: 'demo', categories, allowDemoMarket: true, payload: DEMO_CEX_BOXES_RESPONSE }));
     }
-    const result = await runWorkerCexScan(c.env, categories);
+    const result = await runWorkerCexScan(c.env, categories, query);
     return c.json(result);
   });
 
