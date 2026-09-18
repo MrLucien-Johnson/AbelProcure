@@ -135,7 +135,7 @@ function GpuTable({
             <th>VRAM</th>
             <th>CeX</th>
             <th>Availability</th>
-            <th>eBay sold median</th>
+            <th>eBay comps</th>
             <th>Discount</th>
             <th>1080p /£</th>
             <th>Build 4 resale</th>
@@ -145,6 +145,7 @@ function GpuTable({
             <th>CPU</th>
             <th>Decision</th>
             <th>Max buy</th>
+            <th>Source</th>
             <th>Checked</th>
           </tr>
         </thead>
@@ -181,6 +182,7 @@ function GpuTable({
                 </span>
               </td>
               <td>{formatGBP(money(o.maxBuyPence))}</td>
+              <td>{o.product.dataSource}</td>
               <td>{o.product.collectedAt.slice(0, 16).replace('T', ' ')}</td>
             </tr>
           ))}
