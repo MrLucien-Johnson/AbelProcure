@@ -1,0 +1,16 @@
+node_modules
+dist
+dev-dist
+coverage
+.wrangler
+.dev.vars
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+playwright-report
+test-results
+apps/web/public/sw.js
+apps/web/public/workbox-*.js
+.vite

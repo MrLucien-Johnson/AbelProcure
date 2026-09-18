@@ -1,0 +1,62 @@
+import type { CatalogModel } from './models.ts';
+
+function gpu(
+  key: string,
+  manufacturer: string,
+  series: string,
+  model: string,
+  aliases: string[],
+  typos: string[],
+  demand: number,
+  liquidity: number,
+  gamingTags: string[],
+  vramGb: number,
+  memoryType: string,
+  typicalBuildBand: string,
+): CatalogModel {
+  return {
+    key,
+    type: 'GPU',
+    displayName: model,
+    manufacturer,
+    series,
+    model,
+    aliases,
+    typos,
+    demand,
+    liquidity,
+    gamingTags,
+    vramGb,
+    memoryType,
+    typicalBuildBand,
+  };
+}
+
+/** Extra GPU SKUs for CeX recognition. Merged with existing GPU_MODELS at parse time. */
+export const GPU_MODELS_EXTENDED: readonly CatalogModel[] = [
+  gpu('gtx-1060', 'NVIDIA', 'GeForce GTX', 'GTX 1060', ['GTX1060', '1060 6GB', '1060 3GB'], [], 58, 70, ['1080p'], 6, 'GDDR5', '£250–£350'),
+  gpu('gtx-1070', 'NVIDIA', 'GeForce GTX', 'GTX 1070', ['GTX1070'], [], 62, 68, ['1080p'], 8, 'GDDR5', '£280–£380'),
+  gpu('gtx-1070-ti', 'NVIDIA', 'GeForce GTX', 'GTX 1070 Ti', ['GTX1070TI', '1070 TI'], [], 64, 66, ['1080p'], 8, 'GDDR5', '£300–£400'),
+  gpu('gtx-1080', 'NVIDIA', 'GeForce GTX', 'GTX 1080', ['GTX1080', '1080 8GB'], [], 72, 74, ['1080p', '1440p'], 8, 'GDDR5X', '£320–£420'),
+  gpu('gtx-1080-ti', 'NVIDIA', 'GeForce GTX', 'GTX 1080 Ti', ['GTX1080TI', '1080 TI'], [], 78, 72, ['1440p'], 11, 'GDDR5X', '£380–£500'),
+  gpu('gtx-1650', 'NVIDIA', 'GeForce GTX', 'GTX 1650', ['GTX1650'], [], 50, 65, ['esports'], 4, 'GDDR5', '£180–£260'),
+  gpu('gtx-1650-super', 'NVIDIA', 'GeForce GTX', 'GTX 1650 Super', ['GTX1650S', '1650 SUPER'], [], 55, 64, ['esports'], 4, 'GDDR6', '£200–£280'),
+  gpu('gtx-1660', 'NVIDIA', 'GeForce GTX', 'GTX 1660', ['GTX1660'], [], 60, 70, ['1080p'], 6, 'GDDR5', '£220–£300'),
+  gpu('gtx-1660-super', 'NVIDIA', 'GeForce GTX', 'GTX 1660 Super', ['GTX1660S', '1660 SUPER'], [], 74, 80, ['1080p', 'Fortnite'], 6, 'GDDR6', '£260–£340'),
+  gpu('gtx-1660-ti', 'NVIDIA', 'GeForce GTX', 'GTX 1660 Ti', ['GTX1660TI', '1660 TI'], [], 72, 76, ['1080p'], 6, 'GDDR6', '£250–£330'),
+  gpu('rtx-2080-super', 'NVIDIA', 'GeForce RTX', 'RTX 2080 Super', ['RTX2080S', '2080 SUPER'], [], 70, 60, ['1440p'], 8, 'GDDR6', '£400–£550'),
+  gpu('rtx-2080-ti', 'NVIDIA', 'GeForce RTX', 'RTX 2080 Ti', ['RTX2080TI', '2080 TI'], [], 68, 55, ['1440p'], 11, 'GDDR6', '£450–£600'),
+  gpu('rtx-3050', 'NVIDIA', 'GeForce RTX', 'RTX 3050', ['RTX3050'], [], 64, 70, ['1080p'], 8, 'GDDR6', '£280–£380'),
+  gpu('rtx-3060-8gb', 'NVIDIA', 'GeForce RTX', 'RTX 3060 8GB', ['3060 8GB', 'RTX 3060 8G', 'RTX3060 8GB'], [], 80, 78, ['1080p'], 8, 'GDDR6', '£380–£500'),
+  gpu('rtx-3070-ti', 'NVIDIA', 'GeForce RTX', 'RTX 3070 Ti', ['RTX3070TI', '3070 TI'], [], 82, 70, ['1440p'], 8, 'GDDR6X', '£550–£750'),
+  gpu('gt-1030', 'NVIDIA', 'GeForce GT', 'GT 1030', ['GT1030'], [], 20, 40, ['display'], 2, 'GDDR5', 'n/a'),
+  gpu('rx-570', 'AMD', 'Radeon RX', 'RX 570', ['RX570'], [], 45, 60, ['1080p'], 4, 'GDDR5', '£180–£250'),
+  gpu('rx-580', 'AMD', 'Radeon RX', 'RX 580', ['RX580'], [], 50, 65, ['1080p'], 8, 'GDDR5', '£200–£280'),
+  gpu('rx-5500-xt', 'AMD', 'Radeon RX', 'RX 5500 XT', ['RX5500XT', '5500 XT'], [], 52, 58, ['1080p'], 8, 'GDDR6', '£180–£260'),
+  gpu('rx-5600-xt', 'AMD', 'Radeon RX', 'RX 5600 XT', ['RX5600XT', '5600 XT'], [], 62, 64, ['1080p'], 6, 'GDDR6', '£220–£300'),
+  gpu('rx-5700', 'AMD', 'Radeon RX', 'RX 5700', ['RX5700'], [], 64, 60, ['1080p'], 8, 'GDDR6', '£230–£310'),
+  gpu('rx-5700-xt', 'AMD', 'Radeon RX', 'RX 5700 XT', ['RX5700XT', '5700 XT'], [], 76, 72, ['1080p', '1440p'], 8, 'GDDR6', '£260–£360'),
+  gpu('rx-6400', 'AMD', 'Radeon RX', 'RX 6400', ['RX6400'], [], 42, 55, ['esports'], 4, 'GDDR6', '£160–£220'),
+  gpu('rx-6500-xt', 'AMD', 'Radeon RX', 'RX 6500 XT', ['RX6500XT', '6500 XT'], [], 48, 58, ['esports'], 4, 'GDDR6', '£170–£240'),
+  gpu('rx-6700', 'AMD', 'Radeon RX', 'RX 6700', ['RX6700'], [], 80, 70, ['1440p'], 10, 'GDDR6', '£500–£650'),
+];

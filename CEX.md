@@ -1,0 +1,140 @@
+# CeX UK inventory intelligence
+
+Standalone CeX collector + Build 4 opportunity engine that integrates with AbelProcure through the existing `MarketplaceProvider` boundary. eBay Browse code is unchanged.
+
+## Architecture
+
+```
+MarketplaceProvider
+  ├── EbayMarketplaceProvider     apps/worker/src/ebay/browse.ts  (unchanged)
+  └── CexMarketplaceProvider      packages/core/src/cex/provider.ts
+```
+
+CeX lives in `packages/core/src/cex/*` so it can run without the Worker or eBay credentials. The Worker mounts isolated routes (`/api/cex/*`, `/internal/cex-scan`) and a try/catch cron path. A CeX 403 does not skip eBay search; an eBay failure does not skip CeX.
+
+## Acquisition
+
+The storefront `https://uk.webuy.com/` is a Nuxt SPA. Inventory is **not** in static HTML.
+
+Public JSON the site uses:
+
+| Endpoint | Notes |
+| --- | --- |
+| `GET https://wss2.cex.uk.webuy.io/v3/productlines` | Taxonomy. Observed working. |
+| `GET .../categories?productLineIds=[7]` | Graphics line. PCI-E GPUs = **categoryId 892**. |
+| `GET .../boxes?categoryIds=[892]&firstRecord=1&count=50` | Inventory dump. Often **Cloudflare 403** from datacentre IPs. |
+| `POST https://search.webuy.io/1/indexes/*/queries` | **Same search index as uk.webuy.com.** CORS `*`, no key. Live keyword search uses this. Index `prod_cex_uk`. |
+
+We identify as `AbelProcure/0.1 (+https://github.com/MrLucien-Johnson/AbelProcure)`, default delay 1500ms, stop on 401/403/429. No stealth, no CAPTCHA bypass.
+
+**Search CeX UK** in the PWA POSTs to that storefront index from the browser (and from the Vite/Worker scan as fallback). Fuzzy Algolia extras that do not share the query’s model number are dropped. Product URLs stay `https://uk.webuy.com/product-detail?id={boxId}`. Rows are labelled `CEX_STOREFRONT_SEARCH`.
+
+If `/boxes` is blocked, a category GPU scan also falls back to the storefront index (`filters=categoryId:892`). You can still `POST /api/cex/scan` with `{ "mode": "import", "payload": <raw /boxes JSON> }`.
+
+## Commands
+
+```bash
+npm test                         # unit tests (fixtures only — no live CeX)
+npm run cex:scan:demo            # score labelled DEMO_SYNTHETIC fixtures
+npm run cex:scan                 # one-off live GPU scan
+npm run cex:scan:gpu             # same
+npm run cex:scan:all             # GPU + AMD/Intel CPU categories
+npm run cex:opportunities        # demo opportunity calc (Build 4)
+npm run cex:import -- --import=./boxes.json
+```
+
+Worker (integrated):
+
+```bash
+curl -X POST "$APP_BASE_URL/api/cex/scan" -H 'content-type: application/json' -d '{"mode":"live","categories":"gpu"}'
+curl -X POST "$APP_BASE_URL/internal/cex-scan" -H "x-cron-key: $WEBHOOK_VERIFICATION_TOKEN"
+```
+
+## UI
+
+Routes (existing screens untouched):
+
+- `/cex` overview — **Search CeX inventory** filters collected stock (demo, last scan, or import)
+- `/cex/gpus`
+- `/cex/opportunities`
+- `/cex/history`
+- `/search` — Keyword and one-click GPU chips also match collected CeX inventory (not only eBay)
+
+With GitHub Pages base path: `/AbelProcure/cex` (BrowserRouter). Locally: `http://localhost:5173/cex`.
+
+**Live scan in the PWA** (`npm run dev`) posts to same-origin `POST /api/cex/scan` provided by the Vite plugin. You do **not** need the Cloudflare Worker for a local live/import scan.
+
+Search of CeX inventory hits the **live uk.webuy.com search index** (`search.webuy.io`, `prod_cex_uk`) — the same request the shop website makes. `/boxes` 403 is no longer a dead end. Type a GPU and press **Search CeX UK** (or a one-click GPU chip). Results are labelled `CEX_STOREFRONT_SEARCH`. Demo fixtures stay `DEMO_SYNTHETIC` until a live search succeeds.
+
+If CeX returns HTTP 403 (common from datacentre IPs):
+
+1. Click **Live GPU scan** — the UI will show `UNAVAILABLE` and keep the last inventory on screen.
+2. On a home/residential IP, the same button or `npm run cex:scan` may return real `/boxes` stock.
+3. Or **Import /boxes JSON**: browser DevTools → Network → `boxes` on uk.webuy.com → save the JSON → import. That is live inventory, scored for Build 4.
+
+Do not treat DEMO_SYNTHETIC rows as current CeX stock.
+
+Collection badge is one of `LIVE` / `CACHED` / `STALE` / `UNAVAILABLE` / `DISABLED`. Demo fixtures are `CACHED` + `DEMO_SYNTHETIC`.
+
+## Profit algorithm (Build 4)
+
+```
+ExpectedNetProfit = ExpectedSalePrice
+  - TotalBuildCost          # £268.93 + GPU landed
+  - ExpectedSellingCosts    # 12.8% default
+  - ExpectedShippingCosts   # £4.95 out + £1.50 pack
+  - RiskAllowance           # repair reserve when present
+```
+
+GTX 1080 Strix pending offer **£95 + £5.15 = £100.15** is a comparison benchmark, not a hard-coded winner.
+
+PSU classes on the older Corsair VS550: `SAFE` / `ACCEPTABLE` / `BORDERLINE` / `PSU_UPGRADE_RECOMMENDED` / `INCOMPATIBLE`. Powerful cards are not auto-rejected on nameplate wattage alone.
+
+CPU: Ryzen 5 PRO 2400G. Higher GPUs get a bottleneck flag plus optional AM4 upgrades (3600 / 3600X / 5600) when the upgrade lifts net profit by more than £15.
+
+Spare Gigabyte GT 1030 OC (£34.83) is inventory only — never auto-allocated to Build 4.
+
+## Opportunity score (configurable weights)
+
+| Factor | Default |
+| --- | --- |
+| Finished-PC net profit | 30% |
+| ROI | 15% |
+| GPU performance / £ | 15% |
+| Market demand | 10% |
+| VRAM / generation | 10% |
+| Acquisition risk | 10% |
+| Power / compatibility | 5% |
+| Resale liquidity | 5% |
+
+Decision: `BUY` / `OFFER` / `WATCH` / `PASS` plus a hard max buy. Bargain bands require meaningful margin after fees — a £3 discount does not alert.
+
+## eBay comparison
+
+Reuses the existing price book / sold observations. Browse API does **not** provide verified solds; asking prices are not treated as expected resale. Demo sold-band numbers are labelled `DEMO_SYNTHETIC`.
+
+Complete-PC matching searches existing listing titles for GPU + Ryzen 5 (broad) or exact CPU tokens.
+
+## Database
+
+`apps/worker/migrations/0002_cex.sql` — `cex_products`, `cex_snapshots`, `cex_runs`. Does not reuse eBay `item_id`.
+
+## Configuration
+
+See `.env.example`. Defaults: `CEX_ENABLED=true`, delay 1500ms, timeout 15s, 2 retries, 8 pages/run, cache 15 minutes.
+
+## Limitations
+
+- `/boxes` may be Cloudflare 403 from this environment. Taxonomy endpoints often still work.
+- No Marketplace Insights sold API — sold evidence is owner price book or imported observations.
+- Finished-PC sale estimates in demo mode are `DEMO_SYNTHETIC`, not live comps.
+- Other CeX categories (RAM, SSD, PSU, cases) are category-mapped but not fully scored yet; GPUs are first.
+
+## Troubleshooting
+
+| Symptom | What to do |
+| --- | --- |
+| `UNAVAILABLE` + HTTP 403 | Expected from some IPs. Import `/boxes` JSON captured in a browser, or wait. Do not add evasion. |
+| HTTP 429 | Client stops. Increase `CEX_REQUEST_DELAY`. |
+| Stale UI | Check `lastSuccessAt`. Do not treat cached demo fixtures as live stock. |
+| Empty opportunities | Missing price book / estimates → `INSUFFICIENT_DATA`. Fill the price book. |

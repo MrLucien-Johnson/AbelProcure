@@ -1,0 +1,41 @@
+{
+  "name": "abelprocure",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "PC parts procurement and eBay deal intelligence for UK gaming PC builders.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @abelprocure/web",
+    "dev:worker": "npm run dev -w @abelprocure/worker",
+    "build": "npm run build -w @abelprocure/web",
+    "build:worker": "npm run build -w @abelprocure/worker",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "npm run test:e2e -w @abelprocure/web",
+    "lint": "eslint .",
+    "typecheck": "npm run typecheck -w @abelprocure/core && npm run typecheck -w @abelprocure/web && npm run typecheck -w @abelprocure/worker",
+    "preview": "npm run preview -w @abelprocure/web",
+    "cex:scan": "tsx scripts/cex-scan.ts",
+    "cex:scan:gpu": "tsx scripts/cex-scan.ts --mode=live",
+    "cex:scan:all": "tsx scripts/cex-scan.ts --mode=live --all",
+    "cex:scan:demo": "tsx scripts/cex-scan.ts --mode=demo",
+    "cex:import": "tsx scripts/cex-scan.ts --mode=import",
+    "cex:opportunities": "tsx scripts/cex-scan.ts --mode=demo"
+  },
+  "engines": {
+    "node": ">=20.11.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.35.0",
+    "@types/node": "^22.18.0",
+    "eslint": "^9.35.0",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.42.0",
+    "vitest": "^2.1.9"
+  }
+}
